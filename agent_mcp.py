@@ -2,9 +2,12 @@ import asyncio
 import os
 import shutil
 import argparse
+import json
+import logging
 from dotenv import load_dotenv
 
 from agents import Agent, Runner, gen_trace_id, trace
+from agents.items import ToolCallItem
 from agents.mcp import MCPServer, MCPServerStdio
 
 # This script uses the OpenAI Agents SDK to interact with FileMaker databases
@@ -34,12 +37,29 @@ async def run_query(mcp_server, query, previous_result=None):
         You are a helpful assistant specialized in working with FileMaker databases.
         Use the tools provided by the MCP server to assist with tasks related to FileMaker databases.
         Be concise and informative in your responses.
+        
+        HANDLING LARGE RESULTS:
+        Some tool results may be too large to process directly. In these cases, the tool will store the result in a file
+        and return a response with "status": "file_stored". When you receive such a response, use the file path provided
+        in the response to access the stored result.
+        
+        If the file is very large, it may be chunked into multiple files. In this case, the response will have
+        "status": "file_chunked" and a list of "chunk_paths". You should retrieve each chunk and combine them.
+        
+        Example workflow for handling large results:
+        1. If a tool returns {"status": "file_stored", "file_path": "/path/to/file.json"}, use the file path to access the content.
+        2. If a tool returns {"status": "file_chunked", "chunk_paths": ["/path/to/chunk1.json", "/path/to/chunk2.json"]},
+           retrieve each chunk and combine them.
         """,
         model=model_choice,
         mcp_servers=[mcp_server],
     )
-
-    print(f"\nRunning query: {query}")
+    
+    # Variables to store tool call information for logging
+    tool_name = None
+    tool_arguments = None
+    print("\n--- Running Query ---")
+    
     try:
         # If we have a previous result, use to_input_list() to maintain conversation context
         if previous_result:
@@ -49,19 +69,44 @@ async def run_query(mcp_server, query, previous_result=None):
         else:
             # First query in the conversation
             result = await Runner.run(starting_agent=agent, input=query)
+        
+        # Log tool usage information - simplified format
+        try:
+            if hasattr(result, 'new_items') and result.new_items:
+                
+                # Look for ToolCallItem objects
+                for item in result.new_items:
+                    if isinstance(item, ToolCallItem) and hasattr(item, 'raw_item'):
+                        print("\n--- Tool Call Information ---")
+                        raw_item = item.raw_item
+                        # Extract and print just the name and arguments
+                        if hasattr(raw_item, 'name'):
+                            print(f"name='{raw_item.name}',")
+                            tool_name = raw_item.name  # Store for potential error case
+                        if hasattr(raw_item, 'arguments'):
+                            print(f"arguments='{raw_item.arguments}',")
+                            tool_arguments = raw_item.arguments  # Store for potential error case
+                        print()  # Add a blank line between tool calls
+                
+        except Exception as log_error:
+            print(f"\nError logging tool information: {log_error}")
             
         print(f"\nResult:\n{result.final_output}\n")
         return result
     except Exception as e:
         error_message = str(e)
+        
+        # Print tool information even in error case if we captured it earlier
+        if tool_name or tool_arguments:
+            print("\n--- Tool Call Information (before error) ---")
+            if tool_name:
+                print(f"name='{tool_name}',")
+            if tool_arguments:
+                print(f"arguments='{tool_arguments}',")
+            print()
+        
+        # Streamlined error reporting - just print once with helpful context
         print(f"\nError: {error_message}")
-        if "context_length_exceeded" in error_message:
-            print("\nThe query resulted in too much data for the model to process.")
-            print("Try making your query more specific, for example:")
-            print("- Instead of asking about all tables, ask about a specific table")
-            print("- Instead of asking for all fields, ask for the most important fields")
-            print("- Break your query into smaller, more focused questions")
-        return None
         return None
     finally:
         print("-" * 80)
@@ -147,9 +192,6 @@ async def main():
                 else:
                     # Run in interactive mode by default
                     await interactive_mode(server)
-    except Exception as e:
-        print(f"Error setting up MCP server: {e}")
-        print("Make sure the MCP server path is correct and the server is available.")
     except Exception as e:
         print(f"Error setting up MCP server: {e}")
         print("Make sure the MCP server path is correct and the server is available.")
