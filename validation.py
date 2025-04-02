@@ -7,7 +7,7 @@ from models import TOOL_ARG_MODELS
 from cache import db_info_cache
 from orchestration.cache_hierarchy import schema_cache, table_cache, script_cache
 from database import get_database_info
-from logging_utils import extract_tool_calls_from_result, all_tool_calls
+from logging_utils import extract_tool_calls_from_result, all_tool_calls, logger, log_validation_failure
 from validation_decorator import validate_tool_parameters, ToolParameterValidationError
 
 # Validator functions for database paths
@@ -21,16 +21,14 @@ def validate_db_paths(value: Any) -> None:
     Raises:
         ValueError: If the value is not a valid database path
     """
-    #print(f"\n--- DEBUG: validate_db_paths called with value: {value} ---")
+    logger.debug("Validating database paths: %s", value)
     
     # Get the valid database paths from the cache
     valid_paths = db_info_cache.get_paths()
     
-    #print(f"--- DEBUG: Valid paths in cache: {valid_paths} ---")
-    
     # If the cache is empty, we can't validate
     if not valid_paths:
-        print("Warning: Database path cache is empty, skipping validation")
+        logger.warning("Database path cache is empty, skipping validation")
         return
     
     # Convert value to a list if it's a string
@@ -48,27 +46,32 @@ def validate_db_paths(value: Any) -> None:
                 error_message = f"Placeholder database path detected: {path}\n\nPlease use a valid database path from the list below:\n"
                 for valid_path in valid_paths:
                     error_message += f"  - {valid_path}\n"
+                log_validation_failure("db_paths", "valid path", f"placeholder path: {path}", "raising ValueError")
                 raise ValueError(error_message)
             
             # If we get here, the path is not valid
             error_message = f"Invalid database path: {path}\n\nPlease use a valid database path from the list below:\n"
             for valid_path in valid_paths:
                 error_message += f"  - {valid_path}\n"
+            log_validation_failure("db_paths", "valid path", f"invalid path: {path}", "raising ValueError")
             raise ValueError(error_message)
         
         # All paths are valid
+        logger.debug("All database paths are valid")
         return
     
     # If it's not a string or a list, it's invalid
     error_message = f"Invalid database path type: {type(value)}\n\nPlease use a valid database path from the list below:\n"
     for path in valid_paths:
         error_message += f"  - {path}\n"
+    log_validation_failure("db_paths", "string or list", f"type: {type(value)}", "raising ValueError")
     raise ValueError(error_message)
     
     # If we get here, the path is not valid
     error_message = f"Invalid database path: {value}\n\nPlease use a valid database path from the list below:\n"
     for path in valid_paths:
         error_message += f"  - {path}\n"
+    log_validation_failure("db_paths", "valid path", f"invalid path: {value}", "raising ValueError")
     raise ValueError(error_message)
 
 def validate_db_names(value: Any) -> None:
@@ -81,12 +84,14 @@ def validate_db_names(value: Any) -> None:
     Raises:
         ValueError: If the value is not a valid database name
     """
+    logger.debug("Validating database names: %s", value)
+    
     # Get the valid database names from the cache
     valid_names = db_info_cache.get_names()
     
     # If the cache is empty, we can't validate
     if not valid_names:
-        print("Warning: Database name cache is empty, skipping validation")
+        logger.warning("Database name cache is empty, skipping validation")
         return
     
     # Convert value to a list if it's a string
@@ -103,15 +108,18 @@ def validate_db_names(value: Any) -> None:
             error_message = f"Invalid database name: {name}\n\nPlease use a valid database name from the list below:\n"
             for valid_name in valid_names:
                 error_message += f"  - {valid_name}\n"
+            log_validation_failure("db_names", "valid name", f"invalid name: {name}", "raising ValueError")
             raise ValueError(error_message)
         
         # All names are valid
+        logger.debug("All database names are valid")
         return
     
     # If it's not a string or a list, it's invalid
     error_message = f"Invalid database name type: {type(value)}\n\nPlease use a valid database name from the list below:\n"
     for name in valid_names:
         error_message += f"  - {name}\n"
+    log_validation_failure("db_names", "string or list", f"type: {type(value)}", "raising ValueError")
     raise ValueError(error_message)
 
     """
@@ -128,12 +136,13 @@ def validate_db_names(value: Any) -> None:
     
     # If the cache is empty, we can't validate
     if not valid_paths:
-        print("Warning: Database path cache is empty, skipping validation")
+        logger.warning("Database path cache is empty, skipping validation")
         return
     
     # Check if the value is a string
     if not isinstance(value, str):
         error_message = f"Invalid database path type: {type(value)}\n\nPlease use a valid database path as a string.\n"
+        log_validation_failure("db_path", "string", f"type: {type(value)}", "raising ValueError")
         raise ValueError(error_message)
     
     # Check if the value is a valid path (should not accept just names)
@@ -145,12 +154,14 @@ def validate_db_names(value: Any) -> None:
         error_message = f"Placeholder database path detected: {value}\n\nPlease use a valid database path from the list below:\n"
         for path in valid_paths:
             error_message += f"  - {path}\n"
+        log_validation_failure("db_path", "valid path", f"placeholder path: {value}", "raising ValueError")
         raise ValueError(error_message)
     
     # If we get here, the path is not valid
     error_message = f"Invalid database path: {value}\n\nPlease use a valid database path from the list below:\n"
     for path in valid_paths:
         error_message += f"  - {path}\n"
+    log_validation_failure("db_path", "valid path", f"invalid path: {value}", "raising ValueError")
     raise ValueError(error_message)
 
 def validate_table_name(value: Any, schema_name: str, db_name: str) -> None:
@@ -165,12 +176,14 @@ def validate_table_name(value: Any, schema_name: str, db_name: str) -> None:
     Raises:
         ValueError: If the value is not a valid table name
     """
+    logger.debug("Validating table name: %s in schema %s.%s", value, db_name, schema_name)
+    
     # Get the valid table names from the schema cache
     valid_tables = schema_cache.get_tables(db_name, schema_name)
     
     # If the cache is empty, we can't validate
     if not valid_tables:
-        print(f"Warning: Table cache for schema {schema_name} is empty, skipping validation")
+        logger.warning("Table cache for schema %s.%s is empty, skipping validation", db_name, schema_name)
         return
     
     # Convert value to a list if it's a string
@@ -187,15 +200,19 @@ def validate_table_name(value: Any, schema_name: str, db_name: str) -> None:
             error_message = f"Invalid table name: {table} for schema {schema_name}\n\nPlease use a valid table name from the list below:\n"
             for valid_table in valid_tables:
                 error_message += f"  - {valid_table}\n"
+            log_validation_failure("table_name", f"valid table in {db_name}.{schema_name}", 
+                                  f"invalid table: {table}", "raising ValueError")
             raise ValueError(error_message)
         
         # All tables are valid
+        logger.debug("All table names are valid")
         return
     
     # If it's not a string or a list, it's invalid
     error_message = f"Invalid table name type: {type(value)}\n\nPlease use a valid table name from the list below:\n"
     for table in valid_tables:
         error_message += f"  - {table}\n"
+    log_validation_failure("table_name", "string or list", f"type: {type(value)}", "raising ValueError")
     raise ValueError(error_message)
 
 def validate_field_names(value: Any, table_name: str, schema_name: str, db_name: str) -> None:
@@ -211,12 +228,15 @@ def validate_field_names(value: Any, table_name: str, schema_name: str, db_name:
     Raises:
         ValueError: If the value is not a valid field name
     """
+    logger.debug("Validating field names: %s in table %s.%s.%s", value, db_name, schema_name, table_name)
+    
     # Get the valid field names from the table cache
     valid_fields = table_cache.get_fields(db_name, schema_name, table_name)
     
     # If the cache is empty, we can't validate
     if not valid_fields:
-        print(f"Warning: Field cache for table {table_name} is empty, skipping validation")
+        logger.warning("Field cache for table %s.%s.%s is empty, skipping validation", 
+                      db_name, schema_name, table_name)
         return
     
     # Convert value to a list if it's a string
@@ -233,15 +253,19 @@ def validate_field_names(value: Any, table_name: str, schema_name: str, db_name:
             error_message = f"Invalid field name: {field} for table {table_name}\n\nPlease use a valid field name from the list below:\n"
             for valid_field in valid_fields:
                 error_message += f"  - {valid_field}\n"
+            log_validation_failure("field_names", f"valid field in {db_name}.{schema_name}.{table_name}", 
+                                  f"invalid field: {field}", "raising ValueError")
             raise ValueError(error_message)
         
         # All fields are valid
+        logger.debug("All field names are valid")
         return
     
     # If it's not a string or a list, it's invalid
     error_message = f"Invalid field name type: {type(value)}\n\nPlease use a valid field name from the list below:\n"
     for field in valid_fields:
         error_message += f"  - {field}\n"
+    log_validation_failure("field_names", "string or list", f"type: {type(value)}", "raising ValueError")
     raise ValueError(error_message)
 
 def validate_script_names(value: Any) -> None:
@@ -254,12 +278,14 @@ def validate_script_names(value: Any) -> None:
     Raises:
         ValueError: If the value is not a valid script name
     """
+    logger.debug("Validating script names: %s", value)
+    
     # Get the valid script names from the script cache
     valid_scripts = script_cache.get_scripts()
     
     # If the cache is empty, we can't validate
     if not valid_scripts:
-        print("Warning: Script cache is empty, skipping validation")
+        logger.warning("Script cache is empty, skipping validation")
         return
     
     # Convert value to a list if it's a string
@@ -276,15 +302,18 @@ def validate_script_names(value: Any) -> None:
             error_message = f"Invalid script name: {script}\n\nPlease use a valid script name from the list below:\n"
             for valid_script in valid_scripts:
                 error_message += f"  - {valid_script}\n"
+            log_validation_failure("script_name", "valid script", f"invalid script: {script}", "raising ValueError")
             raise ValueError(error_message)
         
         # All scripts are valid
+        logger.debug("All script names are valid")
         return
     
     # If it's not a string or a list, it's invalid
     error_message = f"Invalid script name type: {type(value)}\n\nPlease use a valid script name from the list below:\n"
     for script in valid_scripts:
         error_message += f"  - {script}\n"
+    log_validation_failure("script_name", "string or list", f"type: {type(value)}", "raising ValueError")
     raise ValueError(error_message)
 
 # Define tool specifications
@@ -397,7 +426,7 @@ class ValidatingMCPServerStdio(MCPServerStdio):
         Returns:
             The result of the tool call
         """
-        print(f"\n--- DEBUG: ValidatingMCPServerStdio.call_tool called for {name} with arguments: {arguments} ---")
+        logger.debug("ValidatingMCPServerStdio.call_tool called for %s with arguments: %s", name, arguments)
         
         # Apply the validation decorator
         # Store a reference to self for use in the nested function
@@ -417,25 +446,28 @@ class ValidatingMCPServerStdio(MCPServerStdio):
                     # If it's not valid JSON, keep it as is
                     pass
             
+            logger.info("Validating tool call: %s", name)
             return await call_tool_with_validation(name, **arguments)
         except ToolParameterValidationError as e:
             # LLM Revision Mechanism
-            print(f"Tool parameter validation error: {e}")
+            logger.info("Tool parameter validation error: %s", e)
             error_dict = e.to_dict()
             
             # Send the error message and original parameters to the LLM
             try:
+                logger.info("Requesting parameter revision from LLM for tool: %s", name)
                 llm_response = await self.revise_parameters(name, error_dict["original_params"], error_dict["changes"])
                 
                 # Retry the validation with the revised parameters
                 try:
                     revised_params = llm_response["revised_parameters"]
+                    logger.info("Retrying tool call with revised parameters: %s", revised_params)
                     return await call_tool_with_validation(name, **revised_params)
                 except ToolParameterValidationError as e:
-                    print(f"Tool parameter validation failed after revision: {e}")
+                    logger.error("Tool parameter validation failed after revision: %s", e)
                     raise  # Re-raise the original exception
             except Exception as e:
-                print(f"Error during parameter revision: {e}")
+                logger.error("Error during parameter revision: %s", e)
                 raise  # Re-raise the original exception
     
     async def revise_parameters(self, tool_name: str, original_params: Dict[str, Any], changes: List[Dict[str, str]]) -> Dict[str, Any]:
@@ -451,6 +483,7 @@ class ValidatingMCPServerStdio(MCPServerStdio):
             A dictionary containing the revised parameters from the LLM.
         """
         if not self.agent:
+            logger.error("Agent not set for parameter revision")
             raise ValueError("Agent not set. Call set_agent() before using revise_parameters().")
         
         # Construct the message to send to the LLM
@@ -480,6 +513,8 @@ class ValidatingMCPServerStdio(MCPServerStdio):
         }
         """
         
+        logger.debug("Sending parameter revision request to LLM")
+        
         # Create a temporary agent with the same model and instructions
         temp_agent = Agent(
             name="Parameter Revision Agent",
@@ -498,9 +533,16 @@ class ValidatingMCPServerStdio(MCPServerStdio):
             json_end = response_text.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
                 json_str = response_text[json_start:json_end]
-                llm_response = json.loads(json_str)
-                return llm_response
+                try:
+                    response_json = json.loads(json_str)
+                    logger.info("Successfully parsed LLM response for parameter revision")
+                    return response_json
+                except json.JSONDecodeError as e:
+                    logger.error("Failed to parse JSON from LLM response: %s", e)
+                    raise ValueError(f"Failed to parse JSON from LLM response: {e}")
             else:
+                logger.error("No JSON found in LLM response")
                 raise ValueError("No JSON found in LLM response")
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON response from LLM: {e}")
+        except Exception as e:
+            logger.error("Error processing LLM response: %s", e)
+            raise ValueError(f"Error processing LLM response: {e}")

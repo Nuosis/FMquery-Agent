@@ -1,5 +1,6 @@
 from typing import Dict, List, Set, Any, Optional, Tuple
 from collections import defaultdict, deque
+from logging_utils import logger
 
 class DependencyGraph:
     """
@@ -43,6 +44,8 @@ class DependencyGraph:
         for tool, dependencies in self.graph.items():
             for dependency in dependencies:
                 self.reverse_graph[dependency].append(tool)
+        
+        logger.debug("DependencyGraph initialized with %d tools", len(self.graph))
     
     def get_dependencies(self, tool_name: str) -> List[str]:
         """
@@ -54,7 +57,10 @@ class DependencyGraph:
         Returns:
             List of tool names that the specified tool depends on
         """
-        return self.graph.get(tool_name, [])
+        dependencies = self.graph.get(tool_name, [])
+        logger.debug("Tool %s has %d direct dependencies: %s", 
+                    tool_name, len(dependencies), dependencies)
+        return dependencies
     
     def get_dependents(self, tool_name: str) -> List[str]:
         """
@@ -66,7 +72,10 @@ class DependencyGraph:
         Returns:
             List of tool names that depend on the specified tool
         """
-        return self.reverse_graph.get(tool_name, [])
+        dependents = self.reverse_graph.get(tool_name, [])
+        logger.debug("Tool %s has %d direct dependents: %s", 
+                    tool_name, len(dependents), dependents)
+        return dependents
     
     def get_all_dependencies(self, tool_name: str) -> Set[str]:
         """
@@ -79,6 +88,7 @@ class DependencyGraph:
             Set of all tool names that the specified tool depends on
         """
         if tool_name not in self.graph:
+            logger.warning("Tool %s not found in dependency graph", tool_name)
             return set()
         
         all_deps = set()
@@ -90,6 +100,8 @@ class DependencyGraph:
                 all_deps.add(dep)
                 queue.extend(self.graph.get(dep, []))
         
+        logger.debug("Tool %s has %d total dependencies: %s", 
+                    tool_name, len(all_deps), all_deps)
         return all_deps
     
     def get_execution_plan(self, tool_name: str) -> List[str]:
@@ -103,6 +115,7 @@ class DependencyGraph:
             List of tool names in the order they should be executed
         """
         if tool_name not in self.graph:
+            logger.warning("Tool %s not found in dependency graph", tool_name)
             return []
         
         # Get all dependencies
@@ -118,7 +131,9 @@ class DependencyGraph:
         
         def visit(node):
             if node in temp_visited:
-                raise ValueError(f"Circular dependency detected involving {node}")
+                error_msg = f"Circular dependency detected involving {node}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
             if node in visited:
                 return
             
@@ -136,6 +151,7 @@ class DependencyGraph:
             if node not in visited:
                 visit(node)
         
+        logger.debug("Execution plan for %s: %s", tool_name, result)
         return result
     
     def add_tool(self, tool_name: str, dependencies: List[str] = None) -> None:
@@ -154,6 +170,9 @@ class DependencyGraph:
         # Update the reverse graph
         for dependency in dependencies:
             self.reverse_graph[dependency].append(tool_name)
+        
+        logger.info("Added tool %s to dependency graph with dependencies: %s", 
+                   tool_name, dependencies)
     
     def remove_tool(self, tool_name: str) -> None:
         """
@@ -179,6 +198,11 @@ class DependencyGraph:
             # Remove from the reverse graph
             if tool_name in self.reverse_graph:
                 del self.reverse_graph[tool_name]
+            
+            logger.info("Removed tool %s from dependency graph", tool_name)
+        else:
+            logger.warning("Attempted to remove non-existent tool %s from dependency graph", 
+                          tool_name)
 
 
 class DependencyResolver:
@@ -193,6 +217,7 @@ class DependencyResolver:
             dependency_graph: The dependency graph to use
         """
         self.dependency_graph = dependency_graph
+        logger.debug("DependencyResolver initialized")
     
     async def resolve_dependencies(self, tool_name: str, cache_checker) -> Tuple[bool, List[str]]:
         """
@@ -210,17 +235,28 @@ class DependencyResolver:
         
         # If there are no dependencies, we're good to go
         if not dependencies:
+            logger.debug("Tool %s has no dependencies", tool_name)
             return True, []
         
         # Check if each dependency is satisfied
         missing_dependencies = []
         for dependency in dependencies:
             # Check if the dependency's data is in the cache
-            if not await cache_checker.is_dependency_satisfied(dependency):
+            is_satisfied = await cache_checker.is_dependency_satisfied(dependency)
+            if not is_satisfied:
+                logger.debug("Dependency %s for tool %s is not satisfied", 
+                            dependency, tool_name)
                 missing_dependencies.append(dependency)
         
         # If there are no missing dependencies, we're good to go
-        return len(missing_dependencies) == 0, missing_dependencies
+        dependencies_satisfied = len(missing_dependencies) == 0
+        if dependencies_satisfied:
+            logger.debug("All dependencies for tool %s are satisfied", tool_name)
+        else:
+            logger.info("Tool %s has %d missing dependencies: %s", 
+                       tool_name, len(missing_dependencies), missing_dependencies)
+        
+        return dependencies_satisfied, missing_dependencies
     
     def get_execution_plan(self, tool_name: str) -> List[str]:
         """
@@ -232,7 +268,9 @@ class DependencyResolver:
         Returns:
             List of tool names in the order they should be executed
         """
-        return self.dependency_graph.get_execution_plan(tool_name)
+        plan = self.dependency_graph.get_execution_plan(tool_name)
+        logger.debug("Execution plan for %s: %s", tool_name, plan)
+        return plan
 
 
 # Initialize the dependency graph

@@ -9,7 +9,10 @@ from agents import Agent, Runner, gen_trace_id, trace
 # Import from our new modules
 from models import TOOL_ARG_MODELS
 from cache import db_info_cache
-from logging_utils import extract_tool_calls_from_result, all_tool_calls, log_tool_call
+from logging_utils import (
+    extract_tool_calls_from_result, all_tool_calls, log_tool_call, 
+    logger, log_failure, log_orchestration_intervention
+)
 from database import get_database_info, get_available_db_paths
 from orchestration import OrchestrationMCPServerStdio
 from validation import tool_specs
@@ -35,12 +38,13 @@ customerName = "Miro"
 
 async def run_query(mcp_server, query, previous_result=None):
     """Run a query against the MCP server using an agent."""
-    #print("\n--- DEBUG: run_query called ---")
+    logger.debug("run_query called with query: %s", query)
     
     # Check if database info cache is valid
-    print(f"Database info cache valid: {db_info_cache.is_valid()}")
-    if db_info_cache.is_valid():
-        print(f"Cache contains {len(db_info_cache.get_paths())} database paths")
+    cache_valid = db_info_cache.is_valid()
+    logger.info("Database info cache valid: %s", cache_valid)
+    if cache_valid:
+        logger.info("Cache contains %d database paths", len(db_info_cache.get_paths()))
     
     # The agent is now created in the main function and set on the server
     # We can get it from the mcp_server
@@ -53,15 +57,14 @@ async def run_query(mcp_server, query, previous_result=None):
     # Variables to store tool call information for logging
     tool_name = None
     tool_arguments = None
-    print("\n--- Running Query ---")
+    logger.info("Running query: %s", query)
     
     try:
-        
         # If we have a previous result, use to_input_list() to maintain conversation context
         if previous_result:
             # Create input that includes previous conversation plus new query
             input_list = previous_result.to_input_list() + [{"role": "user", "content": query}]
-            print(f"Using input_list with {len(input_list)} items")
+            logger.debug("Using input_list with %d items", len(input_list))
             result = await Runner.run(starting_agent=agent, input=input_list)
         else:
             # First query in the conversation
@@ -73,38 +76,37 @@ async def run_query(mcp_server, query, previous_result=None):
         # We don't need to log tool calls from result.new_items anymore
         # since we're capturing them in real-time with callbacks
             
-        print(f"\nResult:\n{result.final_output}\n")
+        logger.info("Query completed successfully")
+        logger.debug("Result: %s", result.final_output)
         return result
     except Exception as e:
         error_message = str(e)
         
-        # Print all tool calls that were made before the error
+        # Log all tool calls that were made before the error
         if all_tool_calls:
-            print("\n--- All Tool Calls Before Error ---")
+            logger.info("Error occurred after %d tool calls", len(all_tool_calls))
             for i, call in enumerate(all_tool_calls):
-                print(f"Tool Call {i+1}:")
-                print(f"  name='{call['name']}',")
-                print(f"  arguments='{call['arguments']}',")
-                print()
+                logger.debug("Tool Call %d: name='%s', arguments='%s'", 
+                           i+1, call['name'], call['arguments'])
         
-        # Also print the most recent tool call if available
+        # Also log the most recent tool call if available
         elif tool_name or tool_arguments:
-            print("\n--- Last Tool Call Before Error ---")
+            logger.info("Error occurred during tool call")
             if tool_name:
-                print(f"name='{tool_name}',")
+                logger.debug("Last tool name: %s", tool_name)
             if tool_arguments:
-                print(f"arguments='{tool_arguments}',")
-            print()
+                logger.debug("Last tool arguments: %s", tool_arguments)
         
-        # Streamlined error reporting - just print once with helpful context
-        print(f"\nError: {error_message}")
+        # Log the error
+        log_failure("Query execution", error_message)
         return None
     finally:
-        print("-" * 80)
+        logger.debug("Query processing completed")
 
 
 async def interactive_mode(mcp_server):
     """Run in interactive mode, allowing the user to input queries."""
+    logger.info("Starting interactive mode")
     print("\nWelcome to Agent FMquery where you can query FileMaker databases using natural language.")
     print("-" * 80)
     
@@ -114,6 +116,7 @@ async def interactive_mode(mcp_server):
     while True:
         query = input("\nEnter your query (or 'exit' to quit): ")
         if query.lower() == 'exit':
+            logger.info("Exiting interactive mode")
             break
         
         # Pass the previous result to maintain context
@@ -122,10 +125,13 @@ async def interactive_mode(mcp_server):
         # Update the previous result for the next iteration
         if result:
             previous_result = result
+            print(f"\nResult:\n{result.final_output}\n")
+            print("-" * 80)
 
 
 async def demo_mode(mcp_server):
     """Run a series of predefined queries to demonstrate the capabilities."""
+    logger.info("Starting demo mode")
     queries = [
         "What databases can I query?",
         "Tell me about the structure of the first database. What tables does it have?",
@@ -135,21 +141,33 @@ async def demo_mode(mcp_server):
     # Track the previous result to maintain conversation context
     previous_result = None
     
-    for query in queries:
+    for i, query in enumerate(queries):
+        logger.info("Running demo query %d: %s", i+1, query)
+        print(f"\nDemo Query {i+1}: '{query}'")
+        print("-" * 80)
+        
         # Pass the previous result to maintain context
         result = await run_query(mcp_server, query, previous_result)
         
         # Update the previous result for the next iteration
         if result:
             previous_result = result
+            print(f"\nResult:\n{result.final_output}\n")
+            print("-" * 80)
 
 async def single_prompt_mode(mcp_server, prompt):
     """Run a single prompt and exit."""
+    logger.info("Running single prompt mode with prompt: %s", prompt)
     print(f"\nRunning prompt: '{prompt}'")
     print("-" * 80)
     
     # Run the query without previous context
     result = await run_query(mcp_server, prompt)
+    
+    # Display the result
+    if result:
+        print(f"\nResult:\n{result.final_output}\n")
+        print("-" * 80)
     
     # No need to update previous_result since we're exiting after this
     return result
@@ -166,10 +184,11 @@ async def main():
     global model_choice
     if args.model:
         model_choice = args.model
-        print(f"Using model: {model_choice}")
+        logger.info("Using model: %s", model_choice)
 
     try:
         # Use our OrchestrationMCPServerStdio instead of ValidatingMCPServerStdio
+        logger.info("Initializing MCP server")
         async with OrchestrationMCPServerStdio(
             name="Filemaker Inspector",
             params={
@@ -182,6 +201,7 @@ async def main():
             },
         ) as server:
             # Create the agent
+            logger.info("Creating agent with model: %s", model_choice)
             agent = Agent(
                 name="FileMaker Assistant",
                 instructions="""
@@ -210,15 +230,24 @@ async def main():
             server.set_agent(agent)
             trace_id = gen_trace_id()
             with trace(workflow_name=f"MCP Filemaker Inspector {customerName}", trace_id=trace_id):
+                logger.info("Trace ID: %s", trace_id)
                 print(f"View trace: https://platform.openai.com/traces/{trace_id}\n")
                 
                 # Fetch database information before starting any mode
                 try:
                     await get_database_info(server, force_refresh=True)
-                    print("Database information fetched successfully.")
+                    logger.info("Database information fetched successfully")
                 except Exception as e:
-                    print(f"Error fetching initial database information: {e}")
-                    print("Continuing anyway, but some features may not work correctly.")
+                    if args.prompt:
+                        # If --prompt flag is provided, fail the initialization
+                        log_failure("Initial database information fetch", str(e),
+                                  "Initialization failed due to database discovery error")
+                        # Re-raise the exception to fail the initialization process
+                        raise
+                    else:
+                        # In interactive or demo mode, continue with a warning
+                        log_failure("Initial database information fetch", str(e),
+                                  "Continuing anyway, but some features may not work correctly")
                 
                 if args.prompt:
                     # Run a single prompt and exit
@@ -230,17 +259,18 @@ async def main():
                     # Run in interactive mode by default
                     await interactive_mode(server)
     except Exception as e:
-        print(f"Error setting up MCP server: {e}")
-        print("Make sure the MCP server path is correct and the server is available.")
+        log_failure("MCP server setup", str(e), 
+                   "Make sure the MCP server path is correct and the server is available")
 
 
 def run_sync():
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
+        logger.info("Exiting due to keyboard interrupt")
         print("\nExiting...")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        log_failure("Main execution", str(e))
 
 
 if __name__ == "__main__":

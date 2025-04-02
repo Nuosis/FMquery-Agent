@@ -3,6 +3,7 @@ from pydantic import create_model, ValidationError, field_validator
 from typing import Callable, Any, Dict, List, Type, Optional
 import json
 from cache import db_info_cache
+from logging_utils import logger, log_validation_failure
 
 def validate_tool_parameters(tool_spec: Dict[str, Any]):
     """
@@ -50,49 +51,54 @@ def validate_tool_parameters(tool_spec: Dict[str, Any]):
                 
                 # If a validator function is provided, add it to the validators dictionary
                 if validator_func:
-                    #print(f"\n--- DEBUG: Adding validator function {validator_func.__name__} for parameter {param_name} ---")
+                    logger.debug("Adding validator function %s for parameter %s", 
+                                validator_func.__name__, param_name)
                     validators[param_name] = validator_func
 
             # Create a dictionary of validators for the model
-            #print(f"\n--- DEBUG: Adding validators to the model: {validators} ---")
+            logger.debug("Creating model with validators: %s", list(validators.keys()))
             
             # Create validator methods directly in a namespace dictionary
             namespace = {}
             for param_name, validator_func in validators.items():
-                #print(f"--- DEBUG: Creating validator method for parameter {param_name} ---")
+                logger.debug("Creating validator method for parameter %s", param_name)
                 
                 # Define the validator method directly in the namespace
                 @field_validator(param_name)
                 def validate_param(cls, v, info):
-                    print(f"\n--- DEBUG: Pydantic validator called for {param_name} with value: {v} ---")
+                    logger.debug("Pydantic validator called for %s with value: %s", param_name, v)
                     try:
                         # Call the validator function
-                        #print(f"--- DEBUG: Calling validator function: {validator_func.__name__} ---")
                         validator_func(v)
-                        #print(f"--- DEBUG: Validator function succeeded ---")
+                        logger.debug("Validator function succeeded for %s", param_name)
                         return v
                     except ValueError as e:
                         # Re-raise the error with the same message
-                        print(f"--- DEBUG: Validator function raised ValueError: {e} ---")
+                        logger.info("Validation failed for %s: %s", param_name, str(e))
                         raise ValueError(str(e))
                 
                 # Add the validator to the namespace
                 namespace[f"validate_{param_name}"] = validate_param
             
             # Create the model with the namespace containing validators
-            #print(f"--- DEBUG: Creating model with namespace: {namespace.keys()} ---")
+            logger.debug("Creating Pydantic model with fields: %s", list(fields.keys()))
             ModelClass = create_model("ToolParameters", **fields, __validators__=namespace)
 
             # 2. Validate Input
             try:
-                #print(f"\n--- DEBUG: Validating input with Pydantic model: {kwargs} ---")
+                logger.debug("Validating input with Pydantic model: %s", kwargs)
                 validated_data = ModelClass(**kwargs)
-                print(f"--- DEBUG: Validation succeeded ---")
+                logger.info("Parameter validation succeeded")
                 # 5. Call the Tool
                 return await func(*args, **validated_data.model_dump())
             except ValidationError as e:
                 # 3. Handle Validation Errors
-                print(f"--- DEBUG: Pydantic validation error: {e} ---")
+                logger.info("Pydantic validation error: %s", e)
+                for error in e.errors():
+                    param = error["loc"][0] if error["loc"] else "unknown"
+                    msg = error["msg"]
+                    value = kwargs.get(param, "not provided")
+                    log_validation_failure(param, "valid value", f"{value} - {msg}", "raising ToolParameterValidationError")
                 raise ToolParameterValidationError(e.errors(), kwargs)
 
         return wrapper

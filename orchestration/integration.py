@@ -6,6 +6,7 @@ from agents import Agent, Runner
 from validation import ValidatingMCPServerStdio, tool_specs
 from validation_decorator import validate_tool_parameters, ToolParameterValidationError
 from orchestration.orchestrator import Orchestrator
+from logging_utils import logger, log_failure
 
 
 class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):
@@ -22,6 +23,7 @@ class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):
         super().__init__(*args, **kwargs)
         self.orchestrator = None
         self.original_arguments = {}  # Initialize original_arguments
+        logger.debug("OrchestrationMCPServerStdio initialized")
     
     def set_agent(self, agent):
         """
@@ -32,6 +34,7 @@ class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):
         """
         super().set_agent(agent)
         self.orchestrator = Orchestrator(self)
+        logger.info("Agent set and orchestrator initialized")
     
     async def call_tool(self, name, arguments):
         """
@@ -44,11 +47,13 @@ class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):
         Returns:
             The result of the tool call
         """
-        print(f"\n--- DEBUG: OrchestrationMCPServerStdio.call_tool called for {name} with arguments: {arguments} ---")
+        logger.debug("OrchestrationMCPServerStdio.call_tool called for %s", name)
         
         # Ensure the orchestrator is initialized
         if self.orchestrator is None:
-            raise ValueError("Orchestrator not initialized. Call set_agent() before using call_tool().")
+            error_msg = "Orchestrator not initialized. Call set_agent() before using call_tool()"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         
         # Apply the validation decorator
         # Store a reference to self for use in the nested function
@@ -58,13 +63,13 @@ class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):
         async def call_tool_with_validation(name, **kwargs):
             # Use the orchestrator to execute the tool
             # Pass the arguments correctly
-            print(f"--- DEBUG: Passing arguments to execute_tool: {kwargs}")
+            logger.debug("Passing arguments to execute_tool: %s", kwargs)
             # Store the original arguments in a variable that will be accessible to the orchestrator
             outer_self.original_arguments = kwargs
             # Also store the original arguments in the orchestrator
             if outer_self.orchestrator:
                 outer_self.orchestrator.original_arguments = kwargs
-                print(f"--- DEBUG: Stored original arguments in orchestrator: {kwargs}")
+                logger.debug("Stored original arguments in orchestrator")
             return await outer_self.orchestrator.execute_tool(name, kwargs)
         
         try:
@@ -72,31 +77,37 @@ class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):
             if isinstance(arguments, str):
                 try:
                     arguments = json.loads(arguments)
+                    logger.debug("Parsed arguments from JSON string")
                 except json.JSONDecodeError:
                     # If it's not valid JSON, keep it as is
+                    logger.debug("Arguments are not valid JSON, using as-is")
                     pass
             
             # Call the tool with validation and orchestration
-            print(f"--- DEBUG: Calling call_tool_with_validation with arguments: {arguments}")
+            logger.info("Calling tool %s with validation", name)
             result = await call_tool_with_validation(name, **arguments)
-            print(f"--- DEBUG: call_tool_with_validation returned result type: {type(result)}")
+            logger.debug("Tool call completed with result type: %s", type(result))
             return result
         except ToolParameterValidationError as e:
             # LLM Revision Mechanism
-            print(f"Tool parameter validation error: {e}")
+            logger.info("Tool parameter validation error: %s", e)
             error_dict = e.to_dict()
             
             # Send the error message and original parameters to the LLM
             try:
+                logger.info("Requesting parameter revision from LLM for tool: %s", name)
                 llm_response = await self.revise_parameters(name, error_dict["original_params"], error_dict["changes"])
                 
                 # Retry the validation with the revised parameters
                 try:
                     revised_params = llm_response["revised_parameters"]
+                    logger.info("Retrying tool call with revised parameters")
                     return await call_tool_with_validation(name, **revised_params)
                 except ToolParameterValidationError as e:
-                    print(f"Tool parameter validation failed after revision: {e}")
+                    log_failure("Tool parameter validation", 
+                               f"Validation failed after revision: {e}",
+                               "Raising exception")
                     raise  # Re-raise the original exception
             except Exception as e:
-                print(f"Error during parameter revision: {e}")
+                log_failure("Parameter revision", str(e), "Raising exception")
                 raise  # Re-raise the original exception
