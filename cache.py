@@ -33,8 +33,6 @@ class DBInfoCache:
         logger.debug("Updating database info cache")
         
         if isinstance(db_info, dict) and 'databases' in db_info:
-            db_count = len(db_info.get('databases', []))
-            logger.info("Updating cache with %d databases", db_count)
             
             # Log database names at debug level
             if logger.isEnabledFor(10):  # DEBUG level

@@ -93,12 +93,18 @@ def validate_tool_parameters(tool_spec: Dict[str, Any]):
                 return await func(*args, **validated_data.model_dump())
             except ValidationError as e:
                 # 3. Handle Validation Errors
-                logger.info("Pydantic validation error: %s", e)
+                logger.debug("Pydantic validation error: %s", e)
+                # Log a summary of all validation errors at INFO level
+                error_summary = []
                 for error in e.errors():
                     param = error["loc"][0] if error["loc"] else "unknown"
                     msg = error["msg"]
                     value = kwargs.get(param, "not provided")
+                    error_summary.append(f"{param}={value} ({msg})")
                     log_validation_failure(param, "valid value", f"{value} - {msg}", "raising ToolParameterValidationError")
+                
+                # Log a summary of all validation errors at INFO level
+                logger.info("Validation failed for tool parameters: %s", ", ".join(error_summary))
                 raise ToolParameterValidationError(e.errors(), kwargs)
 
         return wrapper
@@ -111,7 +117,12 @@ class ToolParameterValidationError(Exception):
     def __init__(self, errors, original_params):
         self.errors = errors
         self.original_params = original_params
-        super().__init__(f"Tool parameter validation failed: {errors}")
+        # Create a more concise error message that doesn't include the full error details
+        error_summary = []
+        for error in errors:
+            param = error["loc"][0] if error["loc"] else "unknown"
+            error_summary.append(f"{param}: {error['type']}")
+        super().__init__(f"Tool parameter validation failed: {', '.join(error_summary)}")
 
     def to_dict(self):
         """

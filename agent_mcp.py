@@ -42,9 +42,7 @@ async def run_query(mcp_server, query, previous_result=None):
     
     # Check if database info cache is valid
     cache_valid = db_info_cache.is_valid()
-    logger.info("Database info cache valid: %s", cache_valid)
-    if cache_valid:
-        logger.info("Cache contains %d database paths", len(db_info_cache.get_paths()))
+    logger.debug("Database info cache valid: %s", cache_valid)
     
     # The agent is now created in the main function and set on the server
     # We can get it from the mcp_server
@@ -57,7 +55,6 @@ async def run_query(mcp_server, query, previous_result=None):
     # Variables to store tool call information for logging
     tool_name = None
     tool_arguments = None
-    logger.info("Running query: %s", query)
     
     try:
         # If we have a previous result, use to_input_list() to maintain conversation context
@@ -75,8 +72,6 @@ async def run_query(mcp_server, query, previous_result=None):
         
         # We don't need to log tool calls from result.new_items anymore
         # since we're capturing them in real-time with callbacks
-            
-        logger.info("Query completed successfully")
         logger.debug("Result: %s", result.final_output)
         return result
     except Exception as e:
@@ -200,14 +195,42 @@ async def main():
                 ],
             },
         ) as server:
+            # Get database paths and names from cache
+            from cache import db_info_cache
+            db_paths = db_info_cache.get_paths()
+            db_names = db_info_cache.get_names()
+            
+            # Format the database information for the instructions
+            db_paths_str = ", ".join([f'"{path}"' for path in db_paths]) if db_paths else "No database paths available yet"
+            db_names_str = ", ".join([f'"{name}"' for name in db_names]) if db_names else "No database names available yet"
+            
             # Create the agent
             logger.info("Creating agent with model: %s", model_choice)
             agent = Agent(
                 name="FileMaker Assistant",
-                instructions="""
+                instructions=f"""
                 You are a helpful assistant specialized in working with FileMaker databases.
                 Use the tools provided by the MCP server to assist with tasks related to FileMaker databases.
                 Be concise and informative in your responses.
+                
+                WORKING WITH DATABASE PATHS AND NAMES:
+                When using tools that require database paths or names, always use actual values from the database cache.
+                The database cache is initialized on startup and contains valid paths and names.
+                
+                AVAILABLE DATABASE PATHS:
+                [{db_paths_str}]
+                
+                AVAILABLE DATABASE NAMES:
+                [{db_names_str}]
+                
+                For tools like get_script_information_tool and get_schema_information_tool that require db_paths:
+                - Use actual database paths from the list above
+                - DO NOT use placeholder paths like 'path/to/database'
+                - If you don't know the specific path, use all available paths from the list above
+                
+                For tools that accept db_names:
+                - Use actual database names from the list above
+                - DO NOT make up database names
                 
                 HANDLING LARGE RESULTS:
                 Some tool results may be too large to process directly. In these cases, the tool will store the result in a file
@@ -218,8 +241,8 @@ async def main():
                 "status": "file_chunked" and a list of "chunk_paths". You should retrieve each chunk and combine them.
                 
                 Example workflow for handling large results:
-                1. If a tool returns {"status": "file_stored", "file_path": "/path/to/file.json"}, use the file path to access the content.
-                2. If a tool returns {"status": "file_chunked", "chunk_paths": ["/path/to/chunk1.json", "/path/to/chunk2.json"]},
+                1. If a tool returns {{"status": "file_stored", "file_path": "/path/to/file.json"}}, use the file path to access the content.
+                2. If a tool returns {{"status": "file_chunked", "chunk_paths": ["/path/to/chunk1.json", "/path/to/chunk2.json"]}},
                    retrieve each chunk and combine them.
                 """,
                 model=model_choice,
@@ -228,36 +251,36 @@ async def main():
             
             # Set the agent for the server
             server.set_agent(agent)
-            trace_id = gen_trace_id()
-            with trace(workflow_name=f"MCP Filemaker Inspector {customerName}", trace_id=trace_id):
-                logger.info("Trace ID: %s", trace_id)
-                print(f"View trace: https://platform.openai.com/traces/{trace_id}\n")
-                
-                # Fetch database information before starting any mode
-                try:
-                    await get_database_info(server, force_refresh=True)
-                    logger.info("Database information fetched successfully")
-                except Exception as e:
-                    if args.prompt:
-                        # If --prompt flag is provided, fail the initialization
-                        log_failure("Initial database information fetch", str(e),
-                                  "Initialization failed due to database discovery error")
-                        # Re-raise the exception to fail the initialization process
-                        raise
-                    else:
-                        # In interactive or demo mode, continue with a warning
-                        log_failure("Initial database information fetch", str(e),
-                                  "Continuing anyway, but some features may not work correctly")
-                
+            
+            # Fetch database information before starting any mode
+            try:
+                await get_database_info(server, force_refresh=True)
+            except Exception as e:
                 if args.prompt:
+                    # If --prompt flag is provided, fail the initialization
+                    log_failure("Initial database information fetch", str(e),
+                              "Initialization failed due to database discovery error")
+                    # Re-raise the exception to fail the initialization process
+                    raise
+                else:
+                    # In interactive or demo mode, continue with a warning
+                    log_failure("Initial database information fetch", str(e),
+                              "Continuing anyway, but some features may not work correctly")
+                
+            if args.prompt:
+                # Only set up tracing when running in prompt mode
+                trace_id = gen_trace_id()
+                with trace(workflow_name=f"MCP Filemaker Inspector {customerName}", trace_id=trace_id):
+                    logger.info("Trace ID: %s", trace_id)
+                    
                     # Run a single prompt and exit
                     await single_prompt_mode(server, args.prompt)
-                elif args.demo:
-                    # Run in demo mode with predefined queries
-                    await demo_mode(server)
-                else:
-                    # Run in interactive mode by default
-                    await interactive_mode(server)
+            elif args.demo:
+                # Run in demo mode with predefined queries
+                await demo_mode(server)
+            else:
+                # Run in interactive mode by default
+                await interactive_mode(server)
     except Exception as e:
         log_failure("MCP server setup", str(e), 
                    "Make sure the MCP server path is correct and the server is available")

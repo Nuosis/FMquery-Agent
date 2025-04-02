@@ -9,7 +9,7 @@ from logging_utils import logger, log_failure
 # Function to get database information from the MCP server
 async def get_database_info(mcp_server, force_refresh=False):
     """
-    Get database information from the MCP server using the discover_databases tool.
+    Get database information from the MCP server using the discover_databases_tool.
     
     Args:
         mcp_server: The MCP server to query
@@ -28,9 +28,9 @@ async def get_database_info(mcp_server, force_refresh=False):
         # Measure time for the direct tool call
         start_time = time.time()
         
-        # Call the discover_databases tool directly
-        logger.debug("Calling discover_databases tool")
-        result = await mcp_server.call_tool("discover_databases", {})
+        # Call the discover_databases_tool directly
+        logger.debug("Calling discover_databases_tool")
+        result = await mcp_server.call_tool("discover_databases_tool", {})
         
         # Calculate and log execution time
         end_time = time.time()
@@ -61,8 +61,11 @@ async def get_database_info(mcp_server, force_refresh=False):
         
         # If we couldn't extract the database info, raise an exception
         if not db_info:
-            error_msg = "Failed to extract database information from discover_databases tool result"
-            logger.error("%s. Result type: %s", error_msg, type(result))
+            error_msg = "Failed to extract database information from discover_databases_tool result"
+            # Log a concise message at INFO level
+            log_failure("Database information fetch", "Failed to extract database information", "Raising exception")
+            # Log detailed error at DEBUG level
+            logger.debug("%s. Result type: %s", error_msg, type(result))
             raise RuntimeError(error_msg)
         
         # Store the database info in the cache

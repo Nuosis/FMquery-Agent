@@ -132,7 +132,10 @@ class DependencyGraph:
         def visit(node):
             if node in temp_visited:
                 error_msg = f"Circular dependency detected involving {node}"
-                logger.error(error_msg)
+                # Log a concise message at INFO level
+                log_failure("Dependency resolution", "Circular dependency detected", "Raising exception")
+                # Log detailed error at DEBUG level
+                logger.debug(error_msg)
                 raise ValueError(error_msg)
             if node in visited:
                 return

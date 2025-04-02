@@ -43,17 +43,27 @@ def validate_db_paths(value: Any) -> None:
                 
             # Check for placeholder paths
             if '/path/to/' in path:
-                error_message = f"Placeholder database path detected: {path}\n\nPlease use a valid database path from the list below:\n"
-                for valid_path in valid_paths:
-                    error_message += f"  - {valid_path}\n"
+                # Create a concise error message for logging
                 log_validation_failure("db_paths", "valid path", f"placeholder path: {path}", "raising ValueError")
+                
+                # Create detailed error message for the exception
+                error_message = f"Placeholder database path detected: {path}"
+                
+                # Log the detailed message at DEBUG level only
+                logger.debug("Detailed validation error: %s", error_message)
+                
                 raise ValueError(error_message)
             
             # If we get here, the path is not valid
-            error_message = f"Invalid database path: {path}\n\nPlease use a valid database path from the list below:\n"
-            for valid_path in valid_paths:
-                error_message += f"  - {valid_path}\n"
+            # Create a concise error message for logging
             log_validation_failure("db_paths", "valid path", f"invalid path: {path}", "raising ValueError")
+            
+            # Create detailed error message for the exception
+            error_message = f"Invalid database path: {path}"
+            
+            # Log the detailed message at DEBUG level only
+            logger.debug("Detailed validation error: %s", error_message)
+            
             raise ValueError(error_message)
         
         # All paths are valid
@@ -61,17 +71,15 @@ def validate_db_paths(value: Any) -> None:
         return
     
     # If it's not a string or a list, it's invalid
-    error_message = f"Invalid database path type: {type(value)}\n\nPlease use a valid database path from the list below:\n"
-    for path in valid_paths:
-        error_message += f"  - {path}\n"
+    # Create a concise error message for logging
     log_validation_failure("db_paths", "string or list", f"type: {type(value)}", "raising ValueError")
-    raise ValueError(error_message)
     
-    # If we get here, the path is not valid
-    error_message = f"Invalid database path: {value}\n\nPlease use a valid database path from the list below:\n"
-    for path in valid_paths:
-        error_message += f"  - {path}\n"
-    log_validation_failure("db_paths", "valid path", f"invalid path: {value}", "raising ValueError")
+    # Create detailed error message for the exception
+    error_message = f"Invalid database path type: {type(value)}"
+    
+    # Log the detailed message at DEBUG level only
+    logger.debug("Detailed validation error: %s", error_message)
+    
     raise ValueError(error_message)
 
 def validate_db_names(value: Any) -> None:
@@ -105,10 +113,15 @@ def validate_db_names(value: Any) -> None:
                 continue
             
             # If we get here, the name is not valid
-            error_message = f"Invalid database name: {name}\n\nPlease use a valid database name from the list below:\n"
-            for valid_name in valid_names:
-                error_message += f"  - {valid_name}\n"
+            # Create a concise error message for logging
             log_validation_failure("db_names", "valid name", f"invalid name: {name}", "raising ValueError")
+            
+            # Create detailed error message for the exception
+            error_message = f"Invalid database name: {name}"
+            
+            # Log the detailed message at DEBUG level only
+            logger.debug("Detailed validation error: %s", error_message)
+            
             raise ValueError(error_message)
         
         # All names are valid
@@ -116,12 +129,18 @@ def validate_db_names(value: Any) -> None:
         return
     
     # If it's not a string or a list, it's invalid
-    error_message = f"Invalid database name type: {type(value)}\n\nPlease use a valid database name from the list below:\n"
-    for name in valid_names:
-        error_message += f"  - {name}\n"
+    # Create a concise error message for logging
     log_validation_failure("db_names", "string or list", f"type: {type(value)}", "raising ValueError")
+    
+    # Create detailed error message for the exception
+    error_message = f"Invalid database name type: {type(value)}"
+    
+    # Log the detailed message at DEBUG level only
+    logger.debug("Detailed validation error: %s", error_message)
+    
     raise ValueError(error_message)
 
+def validate_db_path(value: Any) -> None:
     """
     Validate that the db_path parameter contains a valid database path.
     
@@ -131,6 +150,8 @@ def validate_db_names(value: Any) -> None:
     Raises:
         ValueError: If the value is not a valid database path
     """
+    logger.debug("Validating database path: %s", value)
+    
     # Get the valid database paths from the cache
     valid_paths = db_info_cache.get_paths()
     
@@ -141,8 +162,15 @@ def validate_db_names(value: Any) -> None:
     
     # Check if the value is a string
     if not isinstance(value, str):
-        error_message = f"Invalid database path type: {type(value)}\n\nPlease use a valid database path as a string.\n"
+        # Create a concise error message for logging
         log_validation_failure("db_path", "string", f"type: {type(value)}", "raising ValueError")
+        
+        # Create detailed error message for the exception
+        error_message = f"Invalid database path type: {type(value)}"
+        
+        # Log the detailed message at DEBUG level only
+        logger.debug("Detailed validation error: %s", error_message)
+        
         raise ValueError(error_message)
     
     # Check if the value is a valid path (should not accept just names)
@@ -151,17 +179,27 @@ def validate_db_names(value: Any) -> None:
     
     # Check for placeholder paths
     if '/path/to/' in value:
-        error_message = f"Placeholder database path detected: {value}\n\nPlease use a valid database path from the list below:\n"
-        for path in valid_paths:
-            error_message += f"  - {path}\n"
+        # Create a concise error message for logging
         log_validation_failure("db_path", "valid path", f"placeholder path: {value}", "raising ValueError")
+        
+        # Create detailed error message for the exception
+        error_message = f"Placeholder database path detected: {value}"
+        
+        # Log the detailed message at DEBUG level only
+        logger.debug("Detailed validation error: %s", error_message)
+        
         raise ValueError(error_message)
     
     # If we get here, the path is not valid
-    error_message = f"Invalid database path: {value}\n\nPlease use a valid database path from the list below:\n"
-    for path in valid_paths:
-        error_message += f"  - {path}\n"
+    # Create a concise error message for logging
     log_validation_failure("db_path", "valid path", f"invalid path: {value}", "raising ValueError")
+    
+    # Create detailed error message for the exception
+    error_message = f"Invalid database path: {value}"
+    
+    # Log the detailed message at DEBUG level only
+    logger.debug("Detailed validation error: %s", error_message)
+    
     raise ValueError(error_message)
 
 def validate_table_name(value: Any, schema_name: str, db_name: str) -> None:
@@ -197,11 +235,16 @@ def validate_table_name(value: Any, schema_name: str, db_name: str) -> None:
                 continue
             
             # If we get here, the table is not valid
-            error_message = f"Invalid table name: {table} for schema {schema_name}\n\nPlease use a valid table name from the list below:\n"
-            for valid_table in valid_tables:
-                error_message += f"  - {valid_table}\n"
-            log_validation_failure("table_name", f"valid table in {db_name}.{schema_name}", 
+            # Create a concise error message for logging
+            log_validation_failure("table_name", f"valid table in {db_name}.{schema_name}",
                                   f"invalid table: {table}", "raising ValueError")
+            
+            # Create detailed error message for the exception
+            error_message = f"Invalid table name: {table} for schema {schema_name}"
+            
+            # Log the detailed message at DEBUG level only
+            logger.debug("Detailed validation error: %s", error_message)
+            
             raise ValueError(error_message)
         
         # All tables are valid
@@ -209,10 +252,15 @@ def validate_table_name(value: Any, schema_name: str, db_name: str) -> None:
         return
     
     # If it's not a string or a list, it's invalid
-    error_message = f"Invalid table name type: {type(value)}\n\nPlease use a valid table name from the list below:\n"
-    for table in valid_tables:
-        error_message += f"  - {table}\n"
+    # Create a concise error message for logging
     log_validation_failure("table_name", "string or list", f"type: {type(value)}", "raising ValueError")
+    
+    # Create detailed error message for the exception
+    error_message = f"Invalid table name type: {type(value)}"
+    
+    # Log the detailed message at DEBUG level only
+    logger.debug("Detailed validation error: %s", error_message)
+    
     raise ValueError(error_message)
 
 def validate_field_names(value: Any, table_name: str, schema_name: str, db_name: str) -> None:
@@ -250,11 +298,16 @@ def validate_field_names(value: Any, table_name: str, schema_name: str, db_name:
                 continue
             
             # If we get here, the field is not valid
-            error_message = f"Invalid field name: {field} for table {table_name}\n\nPlease use a valid field name from the list below:\n"
-            for valid_field in valid_fields:
-                error_message += f"  - {valid_field}\n"
-            log_validation_failure("field_names", f"valid field in {db_name}.{schema_name}.{table_name}", 
+            # Create a concise error message for logging
+            log_validation_failure("field_names", f"valid field in {db_name}.{schema_name}.{table_name}",
                                   f"invalid field: {field}", "raising ValueError")
+            
+            # Create detailed error message for the exception
+            error_message = f"Invalid field name: {field} for table {table_name}"
+            
+            # Log the detailed message at DEBUG level only
+            logger.debug("Detailed validation error: %s", error_message)
+            
             raise ValueError(error_message)
         
         # All fields are valid
@@ -262,10 +315,15 @@ def validate_field_names(value: Any, table_name: str, schema_name: str, db_name:
         return
     
     # If it's not a string or a list, it's invalid
-    error_message = f"Invalid field name type: {type(value)}\n\nPlease use a valid field name from the list below:\n"
-    for field in valid_fields:
-        error_message += f"  - {field}\n"
+    # Create a concise error message for logging
     log_validation_failure("field_names", "string or list", f"type: {type(value)}", "raising ValueError")
+    
+    # Create detailed error message for the exception
+    error_message = f"Invalid field name type: {type(value)}"
+    
+    # Log the detailed message at DEBUG level only
+    logger.debug("Detailed validation error: %s", error_message)
+    
     raise ValueError(error_message)
 
 def validate_script_names(value: Any) -> None:
@@ -299,10 +357,15 @@ def validate_script_names(value: Any) -> None:
                 continue
             
             # If we get here, the script is not valid
-            error_message = f"Invalid script name: {script}\n\nPlease use a valid script name from the list below:\n"
-            for valid_script in valid_scripts:
-                error_message += f"  - {valid_script}\n"
+            # Create a concise error message for logging
             log_validation_failure("script_name", "valid script", f"invalid script: {script}", "raising ValueError")
+            
+            # Create detailed error message for the exception
+            error_message = f"Invalid script name: {script}"
+            
+            # Log the detailed message at DEBUG level only
+            logger.debug("Detailed validation error: %s", error_message)
+            
             raise ValueError(error_message)
         
         # All scripts are valid
@@ -310,10 +373,15 @@ def validate_script_names(value: Any) -> None:
         return
     
     # If it's not a string or a list, it's invalid
-    error_message = f"Invalid script name type: {type(value)}\n\nPlease use a valid script name from the list below:\n"
-    for script in valid_scripts:
-        error_message += f"  - {script}\n"
+    # Create a concise error message for logging
     log_validation_failure("script_name", "string or list", f"type: {type(value)}", "raising ValueError")
+    
+    # Create detailed error message for the exception
+    error_message = f"Invalid script name type: {type(value)}"
+    
+    # Log the detailed message at DEBUG level only
+    logger.debug("Detailed validation error: %s", error_message)
+    
     raise ValueError(error_message)
 
 # Define tool specifications
@@ -358,10 +426,10 @@ tool_specs = {
     
     # Custom Functions Tool - Requires db_path
     "get_custom_functions": {
-        "db_path": {"type": "str", "required": True, "validator": validate_db_paths},
+        "db_path": {"type": "str", "required": True, "validator": validate_db_path},
     },
     "get_custom_functions_tool": {  # Add the _tool suffix version
-        "db_path": {"type": "str", "required": True, "validator": validate_db_paths},
+        "db_path": {"type": "str", "required": True, "validator": validate_db_path},
     },
     
     # Large Result Handler Tools
@@ -446,28 +514,34 @@ class ValidatingMCPServerStdio(MCPServerStdio):
                     # If it's not valid JSON, keep it as is
                     pass
             
-            logger.info("Validating tool call: %s", name)
+            logger.debug("Validating tool call: %s", name)
             return await call_tool_with_validation(name, **arguments)
         except ToolParameterValidationError as e:
             # LLM Revision Mechanism
-            logger.info("Tool parameter validation error: %s", e)
+            logger.debug("Tool parameter validation error: %s", e)
             error_dict = e.to_dict()
             
             # Send the error message and original parameters to the LLM
             try:
-                logger.info("Requesting parameter revision from LLM for tool: %s", name)
+                logger.info("Requesting parameter revision from LLM")
                 llm_response = await self.revise_parameters(name, error_dict["original_params"], error_dict["changes"])
                 
                 # Retry the validation with the revised parameters
                 try:
                     revised_params = llm_response["revised_parameters"]
-                    logger.info("Retrying tool call with revised parameters: %s", revised_params)
+                    logger.debug("Retrying tool call with revised parameters: %s", revised_params)
                     return await call_tool_with_validation(name, **revised_params)
                 except ToolParameterValidationError as e:
-                    logger.error("Tool parameter validation failed after revision: %s", e)
+                    # Log a concise message at INFO level
+                    log_failure("Tool parameter validation", "Validation failed after revision", "Raising exception")
+                    # Log detailed error at DEBUG level
+                    logger.debug("Tool parameter validation failed after revision: %s", e)
                     raise  # Re-raise the original exception
             except Exception as e:
-                logger.error("Error during parameter revision: %s", e)
+                # Log a concise message at INFO level
+                log_failure("Parameter revision", "Error during revision", "Raising exception")
+                # Log detailed error at DEBUG level
+                logger.debug("Error during parameter revision: %s", e)
                 raise  # Re-raise the original exception
     
     async def revise_parameters(self, tool_name: str, original_params: Dict[str, Any], changes: List[Dict[str, str]]) -> Dict[str, Any]:
@@ -483,7 +557,10 @@ class ValidatingMCPServerStdio(MCPServerStdio):
             A dictionary containing the revised parameters from the LLM.
         """
         if not self.agent:
-            logger.error("Agent not set for parameter revision")
+            # Log a concise message at INFO level
+            log_failure("Parameter revision", "Agent not set", "Raising exception")
+            # Log detailed error at DEBUG level
+            logger.debug("Agent not set for parameter revision")
             raise ValueError("Agent not set. Call set_agent() before using revise_parameters().")
         
         # Construct the message to send to the LLM
@@ -491,6 +568,27 @@ class ValidatingMCPServerStdio(MCPServerStdio):
         for change in changes:
             message += f"- Parameter '{change['parameter']}': {change['reason']} (Original value: {change['original_value']})\n"
         message += f"Original parameters: {original_params}\n"
+        
+        # Get valid database paths and names from the cache
+        from cache import db_info_cache
+        valid_paths = db_info_cache.get_paths()
+        valid_names = db_info_cache.get_names()
+        
+        # Format the database information for the message
+        db_paths_str = ", ".join([f'"{path}"' for path in valid_paths]) if valid_paths else "No database paths available yet"
+        db_names_str = ", ".join([f'"{name}"' for name in valid_names]) if valid_names else "No database names available yet"
+        
+        # Add information about valid values based on the tool and parameters
+        if 'db_paths' in original_params or tool_name in ['get_script_information', 'get_script_information_tool', 'get_schema_information', 'get_schema_information_tool']:
+            message += "\nIMPORTANT: For database paths, use ONLY values from this list:\n"
+            message += f"AVAILABLE DATABASE PATHS: [{db_paths_str}]\n"
+            message += "DO NOT use placeholder paths like 'path/to/database'. Use ONLY actual paths from the list above.\n"
+        
+        if 'db_names' in original_params or 'db_name' in original_params:
+            message += "\nIMPORTANT: For database names, use ONLY values from this list:\n"
+            message += f"AVAILABLE DATABASE NAMES: [{db_names_str}]\n"
+            message += "DO NOT make up database names. Use ONLY actual names from the list above.\n"
+        
         message += "Please provide revised parameters in the following JSON format:\n"
         message += """
         {
@@ -515,10 +613,19 @@ class ValidatingMCPServerStdio(MCPServerStdio):
         
         logger.debug("Sending parameter revision request to LLM")
         
-        # Create a temporary agent with the same model and instructions
+        # Create a temporary agent with the same model and more specific instructions
         temp_agent = Agent(
             name="Parameter Revision Agent",
-            instructions="You are a helpful assistant that revises tool parameters based on validation errors.",
+            instructions="""
+            You are a helpful assistant that revises tool parameters based on validation errors.
+            
+            IMPORTANT GUIDELINES:
+            1. ONLY use actual database paths and names from the lists provided in the message
+            2. NEVER use placeholder values like 'path/to/database'
+            3. If multiple valid options are available, choose the most appropriate one based on the context
+            4. If you're unsure which specific value to use, include ALL valid values as a list
+            5. Format your response as valid JSON exactly as requested in the message
+            """,
             model=self.model
         )
         
@@ -535,14 +642,22 @@ class ValidatingMCPServerStdio(MCPServerStdio):
                 json_str = response_text[json_start:json_end]
                 try:
                     response_json = json.loads(json_str)
-                    logger.info("Successfully parsed LLM response for parameter revision")
                     return response_json
                 except json.JSONDecodeError as e:
-                    logger.error("Failed to parse JSON from LLM response: %s", e)
+                    # Log a concise message at INFO level
+                    log_failure("Parameter revision", "Failed to parse JSON", "Raising exception")
+                    # Log detailed error at DEBUG level
+                    logger.debug("Failed to parse JSON from LLM response: %s", e)
                     raise ValueError(f"Failed to parse JSON from LLM response: {e}")
             else:
-                logger.error("No JSON found in LLM response")
+                # Log a concise message at INFO level
+                log_failure("Parameter revision", "No JSON found", "Raising exception")
+                # Log detailed error at DEBUG level
+                logger.debug("No JSON found in LLM response")
                 raise ValueError("No JSON found in LLM response")
         except Exception as e:
-            logger.error("Error processing LLM response: %s", e)
+            # Log a concise message at INFO level
+            log_failure("Parameter revision", "Error processing response", "Raising exception")
+            # Log detailed error at DEBUG level
+            logger.debug("Error processing LLM response: %s", e)
             raise ValueError(f"Error processing LLM response: {e}")

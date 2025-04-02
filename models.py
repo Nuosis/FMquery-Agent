@@ -49,7 +49,7 @@ class DiscoverDatabasesArgs(ToolArgBase):
 
 class GetSchemaInformationArgs(ToolArgBase):
     """Arguments for the get_schema_information tool."""
-    db_paths: Union[str, List[str]] = Field(..., description="Path(s) to the database(s)")
+    db_paths: Union[str, List[str]] = Field(..., description="Path(s) to the database(s). Use values from db_info_cache.get_paths() which is initialized on startup.")
     
     @model_validator(mode='before')
     def validate_db_paths(cls, data):
@@ -64,8 +64,8 @@ class GetTableInformationArgs(ToolArgBase):
 
 class GetScriptInformationArgs(ToolArgBase):
     """Arguments for the get_script_information tool."""
-    db_paths: Optional[Union[str, List[str]]] = Field(None, description="Path(s) to the database(s)")
-    db_names: Optional[Union[str, List[str]]] = Field(None, description="Name(s) of the database(s)")
+    db_paths: Optional[Union[str, List[str]]] = Field(None, description="Path(s) to the database(s). Use values from db_info_cache.get_paths() which is initialized on startup.")
+    db_names: Optional[Union[str, List[str]]] = Field(None, description="Name(s) of the database(s). Use values from db_info_cache.get_names() which is initialized on startup.")
     
     @model_validator(mode='before')
     def validate_db_paths(cls, data):
@@ -87,8 +87,8 @@ class GetScriptDetailsArgs(ToolArgBase):
 
 class GetCustomFunctionsArgs(ToolArgBase):
     """Arguments for the get_custom_functions tool."""
-    db_path: Optional[str] = Field(None, description="Path to the database")
-    db_name: Optional[str] = Field(None, description="Name of the database")
+    db_path: Optional[str] = Field(None, description="Path to the database. Use a value from db_info_cache.get_paths() which is initialized on startup.")
+    db_name: Optional[str] = Field(None, description="Name of the database. Use a value from db_info_cache.get_names() which is initialized on startup.")
     
     @model_validator(mode='after')
     def validate_at_least_one_param(cls, data):

@@ -14,7 +14,7 @@ except ImportError:
         pass
 
 # Constants
-DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_LEVEL = "DEBUG"
 DEFAULT_LOG_FILE = "agent_debug.log"
 MAX_LOG_SIZE = 10 * 1024 * 1024  # 10MB
 BACKUP_COUNT = 5
@@ -92,6 +92,12 @@ def setup_logging(log_level=None, log_file=None):
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
+    # Set log level for HTTP-related loggers to WARNING to avoid INFO-level HTTP logs
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    
     
     # Add custom tool call handler
     tool_handler = ToolCallHandler(level=logging.INFO)
@@ -137,8 +143,11 @@ def log_tool_call(name, arguments, result=None):
         'tool_result': result or "{}"
     }
     
-    # Log at INFO level - tool calls are key parts of the process story
-    logger.info("Tool Call: %s with args: %s", name, arguments, extra=extra)
+    # Log a concise message at INFO level
+    logger.info("Tool Call: %s", name, extra=extra)
+    
+    # Log detailed arguments at DEBUG level
+    logger.debug("Tool Call: %s with args: %s", name, arguments, extra=extra)
     
     # Only log results at DEBUG level unless there's an error
     if result:
@@ -158,7 +167,7 @@ def log_tool_call(name, arguments, result=None):
 
 def log_validation_failure(parameter, expected, actual, action_taken=None):
     """
-    Log a validation failure at INFO level.
+    Log a validation failure at DEBUG level (was INFO).
     
     Args:
         parameter: The parameter that failed validation.
@@ -169,11 +178,11 @@ def log_validation_failure(parameter, expected, actual, action_taken=None):
     if logger is None:
         setup_logging()
     
-    message = f"Validation Failed: Parameter '{parameter}' - Expected: {expected}, Actual: {actual}"
+    # Log detailed information at DEBUG level
+    debug_message = f"Validation Failed: Parameter '{parameter}' - Expected: {expected}, Actual: {actual}"
     if action_taken:
-        message += f" - Action: {action_taken}"
-    
-    logger.info(message)
+        debug_message += f" - Action: {action_taken}"
+    logger.debug(debug_message)
 
 
 def log_orchestration_intervention(tool_name, reason, action_taken):
@@ -188,7 +197,11 @@ def log_orchestration_intervention(tool_name, reason, action_taken):
     if logger is None:
         setup_logging()
     
-    logger.info("Orchestration Required: %s - Reason: %s - Action: %s", 
+    # Log a concise message at INFO level
+    logger.info("Orchestration Required: %s - Action: %s", tool_name, action_taken)
+    
+    # Log detailed reason at DEBUG level
+    logger.debug("Orchestration Required: %s - Reason: %s - Action: %s",
                 tool_name, reason, action_taken)
 
 
@@ -218,11 +231,17 @@ def log_failure(operation, reason, impact=None):
     if logger is None:
         setup_logging()
     
-    message = f"Operation Failed: {operation} - Reason: {reason}"
+    # Log a concise message at INFO level
+    info_message = f"Operation Failed: {operation}"
     if impact:
-        message += f" - Impact: {impact}"
+        info_message += f" - Impact: {impact}"
+    logger.info(info_message)
     
-    logger.info(message)
+    # Log detailed reason at DEBUG level
+    debug_message = f"Operation Failed: {operation} - Reason: {reason}"
+    if impact:
+        debug_message += f" - Impact: {impact}"
+    logger.debug(debug_message)
 
 
 def extract_tool_calls_from_result(result):

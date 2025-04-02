@@ -35,8 +35,8 @@ class CacheChecker:
         """
         logger.debug("Checking if dependency is satisfied for tool: %s", tool_name)
         
-        # For discover_databases, check if the database info cache is valid
-        if tool_name == 'discover_databases':
+        # For discover_databases_tool, check if the database info cache is valid
+        if tool_name == 'discover_databases_tool':
             is_valid = db_info_cache.is_valid()
             logger.debug("Database info cache is %s", "valid" if is_valid else "invalid")
             return is_valid
@@ -202,9 +202,9 @@ class ToolRunner:
         content = None
         if hasattr(result, 'content') and result.content:
             logger.debug("Result has content with %d items", len(result.content))
+            
             for i, content_item in enumerate(result.content):
                 if hasattr(content_item, 'text') and content_item.text:
-                    logger.debug("Processing content item %d with text", i)
                     try:
                         content = json.loads(content_item.text)
                         logger.debug("Successfully parsed JSON content")
@@ -219,11 +219,9 @@ class ToolRunner:
             return
         
         # Cache the result based on the tool
-        if tool_name == 'discover_databases' or tool_name == 'discover_databases_tool':
+        if tool_name == 'discover_databases_tool':
             # Ensure content is a dictionary before using get
             if isinstance(content, dict):
-                logger.info("Updating database info cache with %d databases", 
-                           len(content.get('databases', [])))
                 db_info_cache.update(content)
                 # Verify the cache was updated
                 paths = db_info_cache.get_paths()
@@ -402,7 +400,7 @@ class Orchestrator:
         logger.debug("Getting dependency arguments for %s", tool_name)
         
         # For discover_databases_tool, no arguments are needed
-        if tool_name == 'discover_databases' or tool_name == 'discover_databases_tool':
+        if tool_name == 'discover_databases_tool':
             return {}
         
         # For get_schema_information_tool, we need db_paths
