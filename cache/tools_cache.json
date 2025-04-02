@@ -1,0 +1,326 @@
+{
+  "tools_info": {
+    "tools": [
+      {
+        "name": "cleanup_old_files",
+        "description": "Clean up old result files and chunk files.\n\nThis tool is used to clean up old result files and chunk files that were created by the large result handler.\n\nArgs:\n    max_age_seconds: The maximum age of files to keep in seconds\n    \nReturns:\n    Dict[str, Any]: Information about the cleanup operation",
+        "parameters": [
+          {
+            "name": "max_age_seconds",
+            "required": false,
+            "type": "int",
+            "default": 86400
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "cleanup_old_files_tool",
+        "real_example": "cleanup_old_files_tool(max_age_seconds=86400)",
+        "generic_example": "# Example usage of cleanup_old_files\nresult = tools.cleanup_old_files()\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "discover_databases",
+        "description": "Discover available FileMaker databases in the specified directory.\n\nThis tool analyzes the directory structure and identifies the available databases\nby looking for subdirectories with '_ddr' suffix and the Summary.html file.\n\nThis function will run the caching mechanism if:\n1. The cache doesn't exist\n2. The DDR files have been modified since the cache was created\n\nArgs:\n    filemaker_dir (str): The directory containing FileMaker DDR files.\n    \nReturns:\n    Dict[str, Any]: A dictionary containing information about the available databases\n                   and the keys available in cached DDR objects",
+        "parameters": [
+          {
+            "name": "filemaker_dir",
+            "required": true,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "discover_databases_tool",
+        "real_example": "discover_databases_tool(filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\")",
+        "generic_example": "# Example usage of discover_databases\nresult = tools.discover_databases(filemaker_dir=\"example_filemaker_dir\")\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "get_custom_functions",
+        "description": "Get custom functions for a specified FileMaker database.\n\nThis tool extracts custom functions information for the specified database.\n\nArgs:\n    db_path (str, optional): The path to the DDR HTML file\n    db_name (str, optional): The name of the database\n    filemaker_dir (str, optional): The directory containing FileMaker DDR files.\n    ddr_cache_dir (str, optional): The directory for caching DDR data.\n    \nReturns:\n    Dict[str, Any]: A dictionary containing the custom functions information",
+        "parameters": [
+          {
+            "name": "db_path",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "db_name",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "filemaker_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "ddr_cache_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "get_custom_functions_tool",
+        "real_example": "get_custom_functions_tool(db_name=\"NAEMT\", filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\", ddr_cache_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/cache\")",
+        "generic_example": "# Example usage of get_custom_functions\nresult = tools.get_custom_functions(db_path=\"example_db_path\")\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "get_schema_information",
+        "description": "Get schema information for specified FileMaker databases.\n\nThis tool extracts schema information including tables and relationships for the specified databases.\n\nArgs:\n    db_paths (List[str]): A list of paths to the DDR HTML files\n    filemaker_dir (str): The directory containing FileMaker DDR files.\n    ddr_cache_dir (str): The directory for caching DDR data.\n    \nReturns:\n    Dict[str, Any]: A dictionary containing the schema information for each database",
+        "parameters": [
+          {
+            "name": "db_paths",
+            "required": true,
+            "type": "typing.List[str]",
+            "default": null
+          },
+          {
+            "name": "filemaker_dir",
+            "required": true,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "ddr_cache_dir",
+            "required": true,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "get_schema_information_tool",
+        "real_example": "get_schema_information_tool(db_paths=[\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/NAEMT_ddr/NAEMT.html\"], filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\", ddr_cache_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/cache\")",
+        "generic_example": "# Example usage of get_schema_information\nresult = tools.get_schema_information(db_paths=[\"example1.html\", \"example2.html\"], filemaker_dir=\"example_filemaker_dir\", ddr_cache_dir=\"example_ddr_cache_dir\")\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "get_script_details",
+        "description": "Get detailed information for a specific FileMaker script.\n\nThis tool extracts detailed information about a specific script including its steps\nand dependencies from the specified database file.\n\nArgs:\n    script_name (str, required): The name of the script to get information for\n    script_path (str, required): The path to the script's database file\n    filemaker_dir (str, optional): The directory containing FileMaker DDR files.\n    ddr_cache_dir (str, optional): The directory for caching DDR data.\n    \nReturns:\n    Dict[str, Any]: A dictionary containing the script details if found",
+        "parameters": [
+          {
+            "name": "script_name",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "script_path",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "filemaker_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "ddr_cache_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "get_script_details_tool",
+        "real_example": "get_script_details_tool(script_name=\"Import Data\", script_path=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/NAEMT_ddr/NAEMT.html\", filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\", ddr_cache_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/cache\")",
+        "generic_example": "# Example usage of get_script_details\nresult = tools.get_script_details(script_name=\"example_script_name\")\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "get_script_information",
+        "description": "Get script information for specified FileMaker databases.\n\nThis tool extracts script information including scripts, script_details,\nand custom_functions for the specified databases.\n\nArgs:\n    db_paths (List[str], optional): A list of paths to the DDR HTML files\n    db_names (List[str], optional): A list of database names\n    filemaker_dir (str, optional): The directory containing FileMaker DDR files.\n    ddr_cache_dir (str, optional): The directory for caching DDR data.\n    \nReturns:\n    Dict[str, Any]: A dictionary containing the script information for each database",
+        "parameters": [
+          {
+            "name": "db_paths",
+            "required": false,
+            "type": "typing.List[str]",
+            "default": null
+          },
+          {
+            "name": "db_names",
+            "required": false,
+            "type": "typing.List[str]",
+            "default": null
+          },
+          {
+            "name": "filemaker_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "ddr_cache_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "get_script_information_tool",
+        "real_example": "get_script_information_tool(db_paths=[\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/NAEMT_ddr/NAEMT.html\"], filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\", ddr_cache_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/cache\")",
+        "generic_example": "# Example usage of get_script_information\nresult = tools.get_script_information()\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "get_table_information",
+        "description": "Get detailed information for a specific FileMaker table.\n\nThis tool extracts detailed information about a specific table including its fields\nand their properties from all available databases.\n\nArgs:\n    table_name (str, required): The name of the table to get information for\n    table_path (str, required): The path to the table's database file\n    filemaker_dir (str, optional): The directory containing FileMaker DDR files. If not provided, the value from MCP configuration will be used.\n    ddr_cache_dir (str, optional): The directory for caching DDR data. If not provided, a default cache directory will be used.\n    \nReturns:\n    Dict[str, Any]: A dictionary containing the table details if found",
+        "parameters": [
+          {
+            "name": "table_name",
+            "required": true,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "table_path",
+            "required": true,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "filemaker_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "ddr_cache_dir",
+            "required": false,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "get_table_information_tool",
+        "real_example": "get_table_information_tool(table_name=\"Customers\", table_path=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/NAEMT_ddr/NAEMT.html\", filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\", ddr_cache_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML/cache\")",
+        "generic_example": "# Example usage of get_table_information\nresult = tools.get_table_information(table_name=\"example_table_name\", table_path=\"example_table_path\")\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "list_tools",
+        "description": "List all available tools, their parameters, and examples of use.\n\nThis tool provides information about all available tools in the FileMaker DDR Inspector.\nIt returns details about each tool including its name, description, parameters, and example usage.\nThe output is in JSON format, making it easy to parse and use programmatically.\n\nArgs:\n    None\n    \nReturns:\n    Dict[str, Any]: A dictionary containing information about all available tools",
+        "parameters": [],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "list_tools_tool",
+        "real_example": "list_tools_tool()",
+        "generic_example": "# Example usage of list_tools\nresult = tools.list_tools()\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "read_chunk",
+        "description": "Read the content of a chunk file.\n\nThis tool is used to read the content of a chunk file that was created by the large result handler.\n\nArgs:\n    chunk_path (str, optional): The path to the chunk file\n    chunk_name (str, optional): The name of the chunk file\n    \nReturns:\n    Union[str, Dict[str, Any]]: The content of the chunk file or an error message",
+        "parameters": [
+          {
+            "name": "chunk_path",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "chunk_name",
+            "required": false,
+            "type": "str",
+            "default": null
+          }
+        ],
+        "return_type": "typing.Union[str, typing.Dict[str, typing.Any]]",
+        "mcp_name": "read_chunk_tool",
+        "real_example": "read_chunk_tool(chunk_path=\"/Users/marcusswift/python/mcp/mcp-filemaker-inspector/tool_results/chunks/result_1743560887_62e30d64/chunk_0_1743560887.json\")",
+        "generic_example": "# Example usage of read_chunk\nresult = tools.read_chunk(chunk_path=\"example_chunk_path\")\nprint(json.dumps(result, indent=2))\n"
+      },
+      {
+        "name": "read_file_content",
+        "description": "Read the content of a file, chunking it if necessary.\n\nThis tool is used to read the content of a file that was created by the large result handler.\nIf the file is too large, it will be chunked into smaller pieces.\n\nArgs:\n    file_path (str, optional): The path to the file to read\n    file_name (str, optional): The name of the file to read\n    chunk_size: The maximum size of each chunk in bytes\n    \nReturns:\n    Dict[str, Any]: The file content or information about the chunks",
+        "parameters": [
+          {
+            "name": "file_path",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "file_name",
+            "required": false,
+            "type": "str",
+            "default": null
+          },
+          {
+            "name": "chunk_size",
+            "required": false,
+            "type": "int",
+            "default": 512000
+          }
+        ],
+        "return_type": "typing.Dict[str, typing.Any]",
+        "mcp_name": "read_file_content_tool",
+        "real_example": "read_file_content_tool(file_path=\"/Users/marcusswift/python/mcp/mcp-filemaker-inspector/tool_results/result_1743560887_62e30d64.json\", chunk_size=512000)",
+        "generic_example": "# Example usage of read_file_content\nresult = tools.read_file_content(file_path=\"example_file_path\")\nprint(json.dumps(result, indent=2))\n"
+      }
+    ],
+    "tool_dependencies": {
+      "discover_databases_tool": {
+        "dependencies": []
+      },
+      "get_schema_information_tool": {
+        "dependencies": [
+          "discover_databases_tool"
+        ]
+      },
+      "get_table_information_tool": {
+        "dependencies": [
+          "discover_databases_tool",
+          "get_schema_information_tool"
+        ]
+      },
+      "get_script_information_tool": {
+        "dependencies": [
+          "discover_databases_tool"
+        ]
+      },
+      "get_script_details_tool": {
+        "dependencies": [
+          "get_script_information_tool"
+        ]
+      },
+      "get_custom_functions_tool": {
+        "dependencies": [
+          "discover_databases_tool"
+        ]
+      },
+      "read_file_content_tool": {
+        "dependencies": []
+      },
+      "read_chunk_tool": {
+        "dependencies": []
+      },
+      "cleanup_old_files_tool": {
+        "dependencies": []
+      },
+      "list_tools_tool": {
+        "dependencies": []
+      }
+    },
+    "usage_guidelines": [
+      "Start by using `discover_databases_tool` to find available databases.",
+      "Use `get_schema_information_tool` to get information about tables and relationships.",
+      "For specific tables, use `get_table_information_tool`.",
+      "For scripts, use `get_script_information_tool` and `get_script_details_tool`.",
+      "For custom functions, use `get_custom_functions_tool`.",
+      "When dealing with large results, they may be chunked. Use `read_file_content_tool` to read the result file and `read_chunk_tool` to read individual chunks.",
+      "Use `cleanup_old_files_tool` periodically to remove old result and chunk files.",
+      "Use `list_tools_tool` to get information about all available tools."
+    ],
+    "parameter_requirements": [
+      "At least one of `db_path` or `db_name` must be provided for functions that accept these parameters.",
+      "At least one of `file_path` or `file_name` must be provided for `read_file_content_tool`.",
+      "At least one of `chunk_path` or `chunk_name` must be provided for `read_chunk_tool`.",
+      "For `get_script_details_tool`, both `script_name` and `script_path` must be provided.",
+      "For `get_table_information_tool`, both `table_name` and `table_path` must be provided."
+    ],
+    "error_handling": {
+      "description": "All tools return a dictionary. If an error occurs, the dictionary will contain an \"error\" key with a description of the error. Always check for the presence of an \"error\" key in the result before processing it.",
+      "example": "result = get_custom_functions_tool(db_name=\"NAEMT\", filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\")\nif \"error\" in result:\n    # Handle error\n    print(f\"Error: {result['error']}\")\nelse:\n    # Process result\n    functions = result.get(\"custom_functions_information\", {}).get(\"custom_functions\", [])\n    print(f\"Found {len(functions)} custom functions\")"
+    }
+  },
+  "last_updated": 1743622694.230109
+}

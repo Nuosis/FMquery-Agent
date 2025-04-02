@@ -1,5 +1,6 @@
 import json
 import time
+import argparse
 from typing import Dict, List, Any, Optional
 from agents.mcp import MCPServer
 
@@ -7,7 +8,7 @@ from cache import db_info_cache
 from logging_utils import logger, log_failure
 
 # Function to get database information from the MCP server
-async def get_database_info(mcp_server, force_refresh=False):
+async def get_database_info(mcp_server, force_refresh=False, save_to_disk=False):
     """
     Get database information from the MCP server using the discover_databases_tool.
     
@@ -71,6 +72,11 @@ async def get_database_info(mcp_server, force_refresh=False):
         # Store the database info in the cache
         logger.debug("Updating database info cache")
         db_info_cache.update(db_info)
+        
+        # Save to disk if requested
+        if save_to_disk:
+            logger.info("Saving database cache to disk")
+            db_info_cache.save_to_disk()
         return db_info
     except Exception as e:
         log_failure("Database information fetch", str(e))
@@ -78,7 +84,7 @@ async def get_database_info(mcp_server, force_refresh=False):
         raise
 
 # Function to get available database paths from the MCP server (for backward compatibility)
-async def get_available_db_paths(mcp_server, force_refresh=False):
+async def get_available_db_paths(mcp_server, force_refresh=False, save_to_disk=False):
     """
     Get a list of available database paths from the MCP server.
     
@@ -92,7 +98,7 @@ async def get_available_db_paths(mcp_server, force_refresh=False):
     logger.debug("Getting available database paths (force_refresh=%s)", force_refresh)
     
     # Get the database info
-    db_info = await get_database_info(mcp_server, force_refresh)
+    db_info = await get_database_info(mcp_server, force_refresh, save_to_disk)
     
     # Extract paths from the database info
     paths = db_info_cache.get_paths()

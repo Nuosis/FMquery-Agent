@@ -41,6 +41,13 @@ class CacheChecker:
             logger.debug("Database info cache is %s", "valid" if is_valid else "invalid")
             return is_valid
         
+        # For list_tools_tool, check if the tools cache is valid
+        elif tool_name == 'list_tools_tool':
+            from cache import tools_cache
+            is_valid = tools_cache.is_valid()
+            logger.debug("Tools info cache is %s", "valid" if is_valid else "invalid")
+            return is_valid
+        
         # For get_schema_information, check if the schema cache is valid for the specified database
         elif tool_name == 'get_schema_information':
             if not arguments or 'db_paths' not in arguments:
@@ -229,6 +236,17 @@ class ToolRunner:
             else:
                 logger.warning("Content is not a dictionary for tool %s", tool_name)
         
+        elif tool_name == 'list_tools_tool':
+            # Ensure content is a dictionary before using get
+            if isinstance(content, dict):
+                from cache import tools_cache
+                tools_cache.update(content)
+                # Verify the cache was updated
+                tool_names = tools_cache.get_tool_names()
+                logger.debug("After update, tools_cache has %d tools", len(tool_names))
+            else:
+                logger.warning("Content is not a dictionary for tool %s", tool_name)
+        
         elif tool_name == 'get_schema_information':
             # Cache schema information
             if isinstance(content, dict) and 'schemas' in content:
@@ -401,6 +419,10 @@ class Orchestrator:
         
         # For discover_databases_tool, no arguments are needed
         if tool_name == 'discover_databases_tool':
+            return {}
+        
+        # For list_tools_tool, no arguments are needed
+        elif tool_name == 'list_tools_tool':
             return {}
         
         # For get_schema_information_tool, we need db_paths

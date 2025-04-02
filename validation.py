@@ -390,6 +390,10 @@ tool_specs = {
     "discover_databases": {},
     "discover_databases_tool": {},  # Add the _tool suffix version
     
+    # Tools Listing Tool - No parameters required
+    "list_tools": {},
+    "list_tools_tool": {},  # Add the _tool suffix version
+    
     # Schema Information Tool - Requires db_paths
     "get_schema_information": {
         "db_paths": {"type": "list", "required": True, "validator": validate_db_paths},

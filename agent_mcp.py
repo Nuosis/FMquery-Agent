@@ -3,12 +3,13 @@ import os
 import argparse
 import json
 from dotenv import load_dotenv
+from prompts import get_prompt
 
 from agents import Agent, Runner, gen_trace_id, trace
 
 # Import from our new modules
 from models import TOOL_ARG_MODELS
-from cache import db_info_cache
+from cache import db_info_cache, tools_cache, save_all_caches, load_all_caches
 from logging_utils import (
     extract_tool_calls_from_result, all_tool_calls, log_tool_call, 
     logger, log_failure, log_orchestration_intervention
@@ -168,11 +169,27 @@ async def single_prompt_mode(mcp_server, prompt):
     return result
 
 
-async def main():
+# Define a function to create the argument parser
+def create_parser():
     parser = argparse.ArgumentParser(description='FileMaker Database Explorer')
     parser.add_argument('--demo', '-d', action='store_true', help='Run in demo mode with predefined queries')
     parser.add_argument('--model', '-m', type=str, help='Specify the model to use (e.g., gpt-4o, gpt-4o-mini)')
     parser.add_argument('--prompt', '-p', type=str, help='Run a single prompt and exit')
+    parser.add_argument('--prompt-template', '-t', type=str, choices=['base', 'enhanced'],
+                        default='base', help='Specify the prompt template to use for the agent')
+    
+    # Cache persistence options
+    cache_group = parser.add_argument_group('Cache Options')
+    cache_group.add_argument('--load-cache', action='store_true',
+                            help='Load cache from disk at startup')
+    cache_group.add_argument('--save-cache', action='store_true',
+                            help='Save cache to disk when updated')
+    cache_group.add_argument('--save-on-exit', action='store_true',
+                            help='Save cache to disk when exiting')
+    return parser
+
+async def main():
+    parser = create_parser()
     args = parser.parse_args()
 
     # Update model choice if specified in command line
@@ -180,6 +197,15 @@ async def main():
     if args.model:
         model_choice = args.model
         logger.info("Using model: %s", model_choice)
+        
+    # Handle cache loading if requested
+    if args.load_cache:
+        logger.info("Loading caches from disk")
+        load_result = load_all_caches()
+        if load_result:
+            logger.info("Successfully loaded caches from disk")
+        else:
+            logger.warning("Failed to load some or all caches from disk")
 
     try:
         # Use our OrchestrationMCPServerStdio instead of ValidatingMCPServerStdio
@@ -196,7 +222,6 @@ async def main():
             },
         ) as server:
             # Get database paths and names from cache
-            from cache import db_info_cache
             db_paths = db_info_cache.get_paths()
             db_names = db_info_cache.get_names()
             
@@ -205,56 +230,30 @@ async def main():
             db_names_str = ", ".join([f'"{name}"' for name in db_names]) if db_names else "No database names available yet"
             
             # Create the agent
+            # Get the selected prompt template
+            prompt_template = args.prompt_template
+            logger.info("Using prompt template: %s", prompt_template)
+            
+            # Insert database paths and names into the prompt
+            filemaker_agent_prompt = get_prompt(prompt_template)
+            
             logger.info("Creating agent with model: %s", model_choice)
             agent = Agent(
                 name="FileMaker Assistant",
-                instructions=f"""
-                You are a helpful assistant specialized in working with FileMaker databases.
-                Use the tools provided by the MCP server to assist with tasks related to FileMaker databases.
-                Be concise and informative in your responses.
-                
-                WORKING WITH DATABASE PATHS AND NAMES:
-                When using tools that require database paths or names, always use actual values from the database cache.
-                The database cache is initialized on startup and contains valid paths and names.
-                
-                AVAILABLE DATABASE PATHS:
-                [{db_paths_str}]
-                
-                AVAILABLE DATABASE NAMES:
-                [{db_names_str}]
-                
-                For tools like get_script_information_tool and get_schema_information_tool that require db_paths:
-                - Use actual database paths from the list above
-                - DO NOT use placeholder paths like 'path/to/database'
-                - If you don't know the specific path, use all available paths from the list above
-                
-                For tools that accept db_names:
-                - Use actual database names from the list above
-                - DO NOT make up database names
-                
-                HANDLING LARGE RESULTS:
-                Some tool results may be too large to process directly. In these cases, the tool will store the result in a file
-                and return a response with "status": "file_stored". When you receive such a response, use the file path provided
-                in the response to access the stored result.
-                
-                If the file is very large, it may be chunked into multiple files. In this case, the response will have
-                "status": "file_chunked" and a list of "chunk_paths". You should retrieve each chunk and combine them.
-                
-                Example workflow for handling large results:
-                1. If a tool returns {{"status": "file_stored", "file_path": "/path/to/file.json"}}, use the file path to access the content.
-                2. If a tool returns {{"status": "file_chunked", "chunk_paths": ["/path/to/chunk1.json", "/path/to/chunk2.json"]}},
-                   retrieve each chunk and combine them.
-                """,
+                instructions=filemaker_agent_prompt,
                 model=model_choice,
                 mcp_servers=[server],
             )
+            logger.debug("Prompt: %s", agent.instructions)
             
             # Set the agent for the server
             server.set_agent(agent)
             
             # Fetch database information before starting any mode
             try:
-                await get_database_info(server, force_refresh=True)
+                await get_database_info(server,
+                                      force_refresh=not args.load_cache,
+                                      save_to_disk=args.save_cache)
             except Exception as e:
                 if args.prompt:
                     # If --prompt flag is provided, fail the initialization
@@ -265,6 +264,24 @@ async def main():
                 else:
                     # In interactive or demo mode, continue with a warning
                     log_failure("Initial database information fetch", str(e),
+                              "Continuing anyway, but some features may not work correctly")
+            
+            # Fetch tools information
+            try:
+                from tools import get_tools_info
+                await get_tools_info(server,
+                                   force_refresh=not args.load_cache,
+                                   save_to_disk=args.save_cache)
+            except Exception as e:
+                if args.prompt:
+                    # If --prompt flag is provided, fail the initialization
+                    log_failure("Initial tools information fetch", str(e),
+                              "Initialization failed due to tools discovery error")
+                    # Re-raise the exception to fail the initialization process
+                    raise
+                else:
+                    # In interactive or demo mode, continue with a warning
+                    log_failure("Initial tools information fetch", str(e),
                               "Continuing anyway, but some features may not work correctly")
                 
             if args.prompt:
@@ -287,11 +304,19 @@ async def main():
 
 
 def run_sync():
+    parser = create_parser()
+    args = parser.parse_args()
+    
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Exiting due to keyboard interrupt")
         print("\nExiting...")
+        
+        # Save caches on exit if requested
+        if args.save_on_exit:
+            logger.info("Saving caches to disk before exit")
+            save_all_caches()
     except Exception as e:
         log_failure("Main execution", str(e))
 

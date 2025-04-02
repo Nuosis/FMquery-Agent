@@ -26,6 +26,8 @@ class DependencyGraph:
             'read_file_content': [],
             'read_chunk': [],
             'cleanup_old_files': [],
+            # Tools listing tool has no dependencies
+            'list_tools': [],
             
             # Actual tool names used in the MCP server
             'discover_databases_tool': [],
@@ -36,7 +38,8 @@ class DependencyGraph:
             'get_custom_functions_tool': ['discover_databases_tool'],
             'read_file_content_tool': [],
             'read_chunk_tool': [],
-            'cleanup_old_files_tool': []
+            'cleanup_old_files_tool': [],
+            'list_tools_tool': []
         }
         
         # Build the reverse graph for easier traversal
