@@ -23,5 +23,5 @@ MODEL_CHOICE=gpt-4o-mini  # or another model of your choice
 
 ## Running the Agent
 ```bash
-uv run agent_mcp.py
+uv run agent_mcp.py --prompt "what scripts might be related to printing in Miro_Printing"
 ```
