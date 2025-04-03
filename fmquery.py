@@ -29,13 +29,13 @@ load_dotenv()
 model_choice = os.getenv('MODEL_CHOICE', 'gpt-4o-mini')
 
 # Path to the MCP server
-mcp_server_path = "/Users/marcusswift/python/mcp/mcp-filemaker-inspector"
+mcp_server_path = os.getenv("MCP_PATH", "/Users/marcusswift/python/mcp/mcp-filemaker-inspector")
 
 # Path to FileMaker DDR
-ddrPath = "/Users/marcusswift/Documents/fileMakerDevelopment/AL3/Miro/DDR/HTML"
+ddrPath = os.getenv("DDR_PATH","/Users/marcusswift/Documents/fileMakerDevelopment/AL3/Miro/DDR/HTML")
 
 # customer
-customerName = "Miro"
+customerName = os.getenv("CUST_NAME","Miro")
 
 async def run_query(mcp_server, query, previous_result=None):
     """Run a query against the MCP server using an agent."""

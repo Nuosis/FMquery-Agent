@@ -322,5 +322,5 @@
       "example": "result = get_custom_functions_tool(db_name=\"NAEMT\", filemaker_dir=\"/Users/marcusswift/Documents/fileMakerDevelopment/AL3/NAEMT/DDR/HTML\")\nif \"error\" in result:\n    # Handle error\n    print(f\"Error: {result['error']}\")\nelse:\n    # Process result\n    functions = result.get(\"custom_functions_information\", {}).get(\"custom_functions\", [])\n    print(f\"Found {len(functions)} custom functions\")"
     }
   },
-  "last_updated": 1743622694.230109
+  "last_updated": 1743655721.38415
 }
