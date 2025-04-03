@@ -1,7 +1,7 @@
 import time
 import json
 from typing import List, Dict, Any, Optional, Union
-from logging_utils import logger
+from utils.logging_utils import logger
 
 # Base Cache class that all specific caches will inherit from
 class BaseCache:

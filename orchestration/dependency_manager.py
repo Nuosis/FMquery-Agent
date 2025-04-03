@@ -1,6 +1,6 @@
 from typing import Dict, List, Set, Any, Optional, Tuple
 from collections import defaultdict, deque
-from logging_utils import logger
+from utils.logging_utils import logger
 
 class DependencyGraph:
     """

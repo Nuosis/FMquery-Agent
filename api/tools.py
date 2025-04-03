@@ -5,7 +5,7 @@ from typing import Dict, List, Any, Optional
 from agents.mcp import MCPServer
 
 from cache import tools_cache
-from logging_utils import logger, log_failure
+from utils.logging_utils import logger, log_failure
 
 # Function to get tools information from the MCP server
 async def get_tools_info(mcp_server, force_refresh=False, save_to_disk=False):

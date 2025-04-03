@@ -2,7 +2,7 @@ import time
 import json
 import os
 from typing import List, Dict, Any
-from logging_utils import logger
+from utils.logging_utils import logger
 
 # Create cache directory if it doesn't exist
 CACHE_DIR = os.path.dirname(os.path.abspath(__file__))

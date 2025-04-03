@@ -8,8 +8,8 @@ from agents import Agent, Runner
 from orchestration.cache_hierarchy import schema_cache, table_cache, script_cache
 from orchestration.dependency_manager import DependencyGraph, DependencyResolver
 from cache import db_info_cache
-from validation_decorator import ToolParameterValidationError
-from logging_utils import logger, log_orchestration_intervention, log_failure
+from validation.validation_decorator import ToolParameterValidationError
+from utils.logging_utils import logger, log_orchestration_intervention, log_failure
 
 
 class CacheChecker:

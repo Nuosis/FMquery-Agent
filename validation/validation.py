@@ -3,12 +3,12 @@ from typing import Tuple, Dict, List, Any, Optional, Union
 from agents.mcp import MCPServerStdio
 from agents import Agent, Runner
 
-from models import TOOL_ARG_MODELS
+from validation.models import TOOL_ARG_MODELS
 from cache import db_info_cache
 from orchestration.cache_hierarchy import schema_cache, table_cache, script_cache
-from database import get_database_info
-from logging_utils import extract_tool_calls_from_result, all_tool_calls, logger, log_validation_failure
-from validation_decorator import validate_tool_parameters, ToolParameterValidationError
+from api.database import get_database_info
+from utils.logging_utils import extract_tool_calls_from_result, all_tool_calls, logger, log_validation_failure
+from validation.validation_decorator import validate_tool_parameters, ToolParameterValidationError
 
 # Validator functions for database paths
 def validate_db_paths(value: Any) -> None:

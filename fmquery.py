@@ -8,16 +8,16 @@ from prompts import get_prompt
 from agents import Agent, Runner, gen_trace_id, trace
 
 # Import from our new modules
-from models import TOOL_ARG_MODELS
+from validation.models import TOOL_ARG_MODELS
 from cache import db_info_cache, tools_cache, save_all_caches, load_all_caches
-from logging_utils import (
-    extract_tool_calls_from_result, all_tool_calls, log_tool_call, 
+from utils.logging_utils import (
+    extract_tool_calls_from_result, all_tool_calls, log_tool_call,
     logger, log_failure, log_orchestration_intervention
 )
-from database import get_database_info, get_available_db_paths
+from api.database import get_database_info, get_available_db_paths
 from orchestration import OrchestrationMCPServerStdio
-from validation import tool_specs
-from validation_decorator import validate_tool_parameters, ToolParameterValidationError
+from validation.validation import tool_specs
+from validation.validation_decorator import validate_tool_parameters, ToolParameterValidationError
 
 # This script uses the OpenAI Agents SDK to interact with FileMaker databases
 # It maintains conversation context across multiple queries using result.to_input_list()
@@ -268,7 +268,7 @@ async def main():
             
             # Fetch tools information
             try:
-                from tools import get_tools_info
+                from api.tools import get_tools_info
                 await get_tools_info(server,
                                    force_refresh=not args.load_cache,
                                    save_to_disk=args.save_cache)

@@ -142,15 +142,15 @@ This runs a series of predefined queries to demonstrate the capabilities of the 
 python agent_mcp.py --model gpt-4o
 ```
 
-This allows you to specify a different OpenAI model to use for the agent.
+This allows you to specify a different OpenAI model to use for the agent. You can also load and save the cache to disk.
 
 ### Specifying a Different Prompt Template
 
 ```bash
-python agent_mcp.py --prompt-template enhanced
+python agent_mcp.py --prompt-template enhanced --load-cache --save-cache --save-on-exit
 ```
 
-This allows you to select a different prompt template for the agent. Available templates:
+This allows you to select a different prompt template for the agent, load the cache from disk at startup, save the cache to disk when updated, and save the cache to disk when exiting. Available templates:
 - `base` (default): Basic FileMaker assistant prompt
 - `enhanced`: More detailed prompt with advanced analysis techniques
 

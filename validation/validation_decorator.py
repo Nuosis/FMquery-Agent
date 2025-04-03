@@ -3,7 +3,7 @@ from pydantic import create_model, ValidationError, field_validator
 from typing import Callable, Any, Dict, List, Type, Optional
 import json
 from cache import db_info_cache
-from logging_utils import logger, log_validation_failure
+from utils.logging_utils import logger, log_validation_failure
 
 def validate_tool_parameters(tool_spec: Dict[str, Any]):
     """

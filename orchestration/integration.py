@@ -3,10 +3,10 @@ from typing import Dict, List, Any, Optional, Tuple
 from agents.mcp import MCPServerStdio
 from agents import Agent, Runner
 
-from validation import ValidatingMCPServerStdio, tool_specs
-from validation_decorator import validate_tool_parameters, ToolParameterValidationError
+from validation.validation import ValidatingMCPServerStdio, tool_specs
+from validation.validation_decorator import validate_tool_parameters, ToolParameterValidationError
 from orchestration.orchestrator import Orchestrator
-from logging_utils import logger, log_failure
+from utils.logging_utils import logger, log_failure
 
 
 class OrchestrationMCPServerStdio(ValidatingMCPServerStdio):

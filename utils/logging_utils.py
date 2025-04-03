@@ -17,6 +17,14 @@ except ImportError:
 DEFAULT_LOG_LEVEL = "DEBUG"
 DEFAULT_LOG_FILE = "agent_debug.log"
 MAX_LOG_SIZE = 10 * 1024 * 1024  # 10MB
+
+# ANSI color codes
+RESET = "\033[0m"
+TEAL = "\033[36m"      # Cyan/Teal color for timestamps
+BLUE = "\033[34m"      # Blue color for INFO level
+RED = "\033[31m"       # Red color for ERROR level
+HOT_PINK = "\033[95m"  # Hot pink/magenta color for CRITICAL level
+ORANGE = "\033[33m"    # Orange/yellow color for WARNING level
 BACKUP_COUNT = 5
 
 # Global list to store all tool calls for logging (maintained for compatibility)
@@ -73,13 +81,46 @@ def setup_logging(log_level=None, log_file=None):
     # Clear any existing handlers
     root_logger.handlers = []
     
-    # Create formatter
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # Create custom colored formatter for console output
+    class ColoredFormatter(logging.Formatter):
+        """Custom formatter that adds colors to timestamp and log level."""
+        
+        def format(self, record):
+            # Format the message using the parent formatter
+            formatted = super().format(record)
+            
+            # Extract the timestamp and level name parts from the formatted string
+            # The format is: '%(asctime)s - %(levelname)s - %(message)s'
+            parts = formatted.split(' - ', 2)
+            if len(parts) >= 3:
+                # Add color to timestamp (always teal)
+                colored_time = f"{TEAL}{parts[0]}{RESET}"
+                
+                # Add color to level name based on log level
+                level_color = BLUE  # Default color for INFO
+                
+                if record.levelname == 'CRITICAL':
+                    level_color = HOT_PINK
+                elif record.levelname == 'ERROR':
+                    level_color = RED
+                elif record.levelname == 'WARNING':
+                    level_color = ORANGE
+                
+                colored_level = f"{level_color}{parts[1]}{RESET}"
+                
+                # Reconstruct the message with colored parts
+                formatted = f"{colored_time} - {colored_level} - {parts[2]}"
+            
+            return formatted
     
-    # Add stdout handler for INFO and above
+    # Create formatters
+    standard_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    colored_formatter = ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s')
+    
+    # Add stdout handler for INFO and above with colored output
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging.INFO)  # Always show INFO+ on stdout
-    stream_handler.setFormatter(formatter)
+    stream_handler.setFormatter(colored_formatter)
     root_logger.addHandler(stream_handler)
     
     # Add file handler for DEBUG and above if in DEBUG mode
@@ -90,7 +131,7 @@ def setup_logging(log_level=None, log_file=None):
             backupCount=BACKUP_COUNT
         )
         file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
+        file_handler.setFormatter(standard_formatter)
         root_logger.addHandler(file_handler)
     # Set log level for HTTP-related loggers to WARNING to avoid INFO-level HTTP logs
     logging.getLogger("httpx").setLevel(logging.WARNING)
